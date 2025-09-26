@@ -89,9 +89,11 @@
             color: white;
             padding: 0.4rem 0.8rem;
             text-decoration: none;
+            border: none;
             border-radius: 4px;
             transition: background 0.3s;
             font-size: 0.85rem;
+            cursor: pointer;
         }
         
         .logout-btn:hover {
@@ -234,7 +236,10 @@
                 <h1>{% block page_title %}Dashboard{% endblock %}</h1>
                 <div class="user-info">
                     <span>Welcome, {{ user.get_full_name|default:user.username }}!</span>
-                    <a href="{% url 'users:logout' %}" class="logout-btn">Logout</a>
+                    <form method="post" action="{% url 'users:logout' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-btn">Logout</button>
+                    </form>
                 </div>
             </div>
             

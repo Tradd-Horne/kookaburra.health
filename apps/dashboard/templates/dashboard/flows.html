@@ -20,6 +20,15 @@
                     <path d="M2 2L6 4L2 6z" fill="#999"/>
                 </svg>
             </div>
+            <div class="finder-item" data-category="google-drive">
+                <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
+                    <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
+                </svg>
+                <span>Google Drive</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                    <path d="M2 2L6 4L2 6z" fill="#999"/>
+                </svg>
+            </div>
             <div class="finder-item active" data-category="workflows">
                 <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
                     <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
@@ -43,6 +52,21 @@
                         <path d="M5 5v7M8 5v7M11 5v7" stroke="white" stroke-width="0.5"/>
                     </svg>
                     <span>Personal Budget Tracker</span>
+                    <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                        <path d="M2 2L6 4L2 6z" fill="#999"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Google Drive Content (hidden by default) -->
+            <div id="google-drive-content" style="display: none;">
+                <div class="finder-item active">
+                    <svg width="16" height="16" viewBox="0 0 16 16" class="file-icon">
+                        <rect width="16" height="16" rx="2" fill="#4285f4"/>
+                        <path d="M3 4h10c0.5 0 1 0.5 1 1v6c0 0.5-0.5 1-1 1H3c-0.5 0-1-0.5-1-1V5c0-0.5 0.5-1 1-1z" fill="white"/>
+                        <path d="M5 6h6v1H5zM5 8h4v1H5z" fill="#4285f4"/>
+                    </svg>
+                    <span>Project Documents</span>
                     <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
                         <path d="M2 2L6 4L2 6z" fill="#999"/>
                     </svg>
@@ -83,6 +107,23 @@
                 </div>
             </div>
             
+            <!-- Google Drive Preview (hidden by default) -->
+            <div id="google-drive-preview" style="display: none;">
+                <div class="finder-preview">
+                    <div class="finder-preview-info">
+                        <h3>Project Documents</h3>
+                        <div class="finder-preview-details">
+                            <div><strong>Status:</strong> Watching</div>
+                            <div><strong>Type:</strong> Google Drive Folder</div>
+                            <div><strong>Files:</strong> 24 documents</div>
+                            <div><strong>Last Activity:</strong> 2 hours ago</div>
+                            <div><strong>Path:</strong> /Shared/Projects/SALT</div>
+                        </div>
+                        <button class="btn" style="margin-top: 0.5rem;" onclick="openConfigureWatchModal()">Configure Watch</button>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Workflows Preview (visible by default) -->
             <div id="workflows-preview">
                 <div class="finder-preview">
@@ -102,6 +143,43 @@
     </div>
 </div>
 
+<!-- Configure Google Drive Watch Modal -->
+<div id="configureWatchModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Configure Google Drive Folder Watch</h3>
+            <span class="close" onclick="closeConfigureWatchModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="folderUrl">Google Drive Folder URL or ID:</label>
+                <input type="text" id="folderUrl" placeholder="https://drive.google.com/drive/folders/1ABC123... or folder ID" />
+                <small class="help-text">Paste the share link or folder ID from Google Drive</small>
+            </div>
+            
+            <div id="folderValidation" class="validation-result" style="display: none;">
+                <div class="loading-spinner" id="loadingSpinner" style="display: none;">Validating folder...</div>
+                <div id="folderInfo" style="display: none;">
+                    <h4>Folder Details:</h4>
+                    <div class="folder-details">
+                        <div><strong>Name:</strong> <span id="folderName">-</span></div>
+                        <div><strong>Files:</strong> <span id="folderFileCount">-</span></div>
+                        <div><strong>Owner:</strong> <span id="folderOwner">-</span></div>
+                        <div><strong>Last Modified:</strong> <span id="folderLastModified">-</span></div>
+                    </div>
+                </div>
+                <div id="folderError" class="error-message" style="display: none;">
+                    Unable to access folder. Please check the URL and ensure the folder is shared.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeConfigureWatchModal()">Cancel</button>
+            <button class="btn" id="validateBtn" onclick="validateFolder()">Validate Folder</button>
+            <button class="btn" id="saveBtn" onclick="saveFolderWatch()" style="display: none;">Start Watching</button>
+        </div>
+    </div>
+</div>
 
 <style>
 .empty-state {
@@ -223,6 +301,111 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+}
+
+.close {
+    font-size: 1.5rem;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.help-text {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.validation-result {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.loading-spinner {
+    color: #666;
+    font-style: italic;
+}
+
+.folder-details {
+    margin-top: 0.5rem;
+}
+
+.folder-details div {
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.error-message {
+    color: #e74c3c;
+    font-size: 0.85rem;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
 </style>
 
 <script>
@@ -246,18 +429,34 @@ document.addEventListener('DOMContentLoaded', function() {
             if (category === 'google-sheets') {
                 // Show Google Sheets content
                 document.getElementById('google-sheets-content').style.display = 'block';
+                document.getElementById('google-drive-content').style.display = 'none';
                 document.getElementById('workflows-content').style.display = 'none';
                 document.getElementById('google-sheets-preview').style.display = 'block';
+                document.getElementById('google-drive-preview').style.display = 'none';
                 document.getElementById('workflows-preview').style.display = 'none';
                 
                 // Update headers
                 column2Header.textContent = 'Google Sheets';
                 column3Header.textContent = 'Personal Budget Tracker';
+            } else if (category === 'google-drive') {
+                // Show Google Drive content
+                document.getElementById('google-sheets-content').style.display = 'none';
+                document.getElementById('google-drive-content').style.display = 'block';
+                document.getElementById('workflows-content').style.display = 'none';
+                document.getElementById('google-sheets-preview').style.display = 'none';
+                document.getElementById('google-drive-preview').style.display = 'block';
+                document.getElementById('workflows-preview').style.display = 'none';
+                
+                // Update headers
+                column2Header.textContent = 'Google Drive';
+                column3Header.textContent = 'Project Documents';
             } else if (category === 'workflows') {
                 // Show Workflows content
                 document.getElementById('google-sheets-content').style.display = 'none';
+                document.getElementById('google-drive-content').style.display = 'none';
                 document.getElementById('workflows-content').style.display = 'block';
                 document.getElementById('google-sheets-preview').style.display = 'none';
+                document.getElementById('google-drive-preview').style.display = 'none';
                 document.getElementById('workflows-preview').style.display = 'block';
                 
                 // Update headers
@@ -266,6 +465,118 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+
+// Modal functions
+function openConfigureWatchModal() {
+    document.getElementById('configureWatchModal').style.display = 'flex';
+    document.getElementById('folderUrl').focus();
+}
+
+function closeConfigureWatchModal() {
+    document.getElementById('configureWatchModal').style.display = 'none';
+    // Reset form
+    document.getElementById('folderUrl').value = '';
+    document.getElementById('folderValidation').style.display = 'none';
+    document.getElementById('validateBtn').style.display = 'inline-block';
+    document.getElementById('saveBtn').style.display = 'none';
+}
+
+function extractFolderId(url) {
+    // Extract folder ID from Google Drive URL
+    const regex = /\/folders\/([a-zA-Z0-9-_]+)/;
+    const match = url.match(regex);
+    return match ? match[1] : url; // Return ID if found, otherwise assume it's already an ID
+}
+
+async function validateFolder() {
+    const folderUrl = document.getElementById('folderUrl').value.trim();
+    
+    if (!folderUrl) {
+        alert('Please enter a Google Drive folder URL or ID');
+        return;
+    }
+    
+    const folderId = extractFolderId(folderUrl);
+    
+    // Show loading
+    document.getElementById('folderValidation').style.display = 'block';
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('folderInfo').style.display = 'none';
+    document.getElementById('folderError').style.display = 'none';
+    
+    try {
+        // Call backend API to validate folder
+        const response = await fetch('/api/google-drive/validate-folder/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ folder_id: folderId })
+        });
+        
+        const data = await response.json();
+        
+        document.getElementById('loadingSpinner').style.display = 'none';
+        
+        if (data.success) {
+            // Show folder info
+            document.getElementById('folderName').textContent = data.folder.name;
+            document.getElementById('folderFileCount').textContent = data.folder.file_count + ' files';
+            document.getElementById('folderOwner').textContent = data.folder.owner;
+            document.getElementById('folderLastModified').textContent = data.folder.last_modified;
+            
+            document.getElementById('folderInfo').style.display = 'block';
+            document.getElementById('validateBtn').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'inline-block';
+        } else {
+            // Show error
+            document.getElementById('folderError').textContent = data.error || 'Unable to access folder';
+            document.getElementById('folderError').style.display = 'block';
+        }
+    } catch (error) {
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('folderError').textContent = 'Network error. Please try again.';
+        document.getElementById('folderError').style.display = 'block';
+    }
+}
+
+async function saveFolderWatch() {
+    const folderUrl = document.getElementById('folderUrl').value.trim();
+    const folderId = extractFolderId(folderUrl);
+    
+    try {
+        const response = await fetch('/api/google-drive/setup-watch/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ folder_id: folderId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Folder watch configured successfully!');
+            closeConfigureWatchModal();
+            // Refresh the page or update the UI to show the new watch
+            location.reload();
+        } else {
+            alert('Failed to configure folder watch: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Network error. Please try again.');
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('configureWatchModal');
+    if (event.target === modal) {
+        closeConfigureWatchModal();
+    }
 });
 </script>
 {% endblock %}

@@ -4,59 +4,79 @@
 {% block page_title %}Account Settings{% endblock %}
 
 {% block content %}
-<div class="content-card">
-    <h2>User Information</h2>
-    <p><strong>Username:</strong> {{ user.username }}</p>
-    <p><strong>Email:</strong> {{ user.email }}</p>
-    <p><strong>Name:</strong> {{ user.get_full_name|default:"Not provided" }}</p>
-    <p><strong>Member Since:</strong> {{ user.date_joined|date:"F d, Y" }}</p>
+<div class="settings-grid">
+    <div class="content-card">
+        <h2>User Information</h2>
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Name:</strong> {{ user.get_full_name|default:"Not provided" }}</p>
+        <p><strong>Member Since:</strong> {{ user.date_joined|date:"F d, Y" }}</p>
+    </div>
+
+    <div class="content-card">
+        <h2>Change Password</h2>
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.old_password.id_for_label }}">Current Password</label>
+                {{ form.old_password }}
+                {% if form.old_password.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.old_password.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.new_password1.id_for_label }}">New Password</label>
+                {{ form.new_password1 }}
+                {% if form.new_password1.help_text %}
+                    <p class="helptext">{{ form.new_password1.help_text }}</p>
+                {% endif %}
+                {% if form.new_password1.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.new_password1.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.new_password2.id_for_label }}">Confirm New Password</label>
+                {{ form.new_password2 }}
+                {% if form.new_password2.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.new_password2.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            
+            <button type="submit" class="btn">Change Password</button>
+        </form>
+    </div>
 </div>
 
-<div class="content-card">
-    <h2>Change Password</h2>
-    <form method="post">
-        {% csrf_token %}
-        
-        <div class="form-group">
-            <label for="{{ form.old_password.id_for_label }}">Current Password</label>
-            {{ form.old_password }}
-            {% if form.old_password.errors %}
-                <ul class="errorlist">
-                    {% for error in form.old_password.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-        
-        <div class="form-group">
-            <label for="{{ form.new_password1.id_for_label }}">New Password</label>
-            {{ form.new_password1 }}
-            {% if form.new_password1.help_text %}
-                <p class="helptext">{{ form.new_password1.help_text }}</p>
-            {% endif %}
-            {% if form.new_password1.errors %}
-                <ul class="errorlist">
-                    {% for error in form.new_password1.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-        
-        <div class="form-group">
-            <label for="{{ form.new_password2.id_for_label }}">Confirm New Password</label>
-            {{ form.new_password2 }}
-            {% if form.new_password2.errors %}
-                <ul class="errorlist">
-                    {% for error in form.new_password2.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-        
-        <button type="submit" class="btn">Change Password</button>
-    </form>
-</div>
+<style>
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.settings-grid .content-card .form-group {
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}
