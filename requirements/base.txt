@@ -21,6 +21,11 @@ django-cors-headers==4.3.1
 # Security
 django-ratelimit==4.1.0
 
+# Google Drive API
+google-api-python-client==2.100.0
+google-auth==2.23.0
+google-auth-oauthlib==1.1.0
+
 # Utilities
 Pillow==10.2.0  # Image handling
 python-slugify==8.0.1

@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import GoogleDriveFolder, GoogleDriveWatchConfig
+from .google_drive_service import GoogleDriveService
 
 
 @extend_schema(
@@ -148,8 +149,7 @@ def validate_google_drive_folder(request):
     """
     Validate Google Drive folder access and return folder details.
     
-    This is a mock implementation that simulates folder validation.
-    In a real implementation, this would use Google Drive API to:
+    Uses Google Drive API to:
     - Check if the folder exists
     - Verify user has access to the folder
     - Retrieve folder metadata
@@ -164,52 +164,73 @@ def validate_google_drive_folder(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    # Mock validation logic - in real implementation, use Google Drive API
-    if folder_id == "invalid_folder":
-        return Response(
-            {"error": "Folder not found"},
-            status=status.HTTP_404_NOT_FOUND
-        )
-    
-    if folder_id == "no_access_folder":
-        return Response(
-            {"error": "Access denied to folder"},
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    # Mock successful response
-    mock_response = {
-        "status": "success",
-        "folder_id": folder_id,
-        "folder_name": f"Sample Folder ({folder_id[:8]}...)",
-        "owner": "sample.owner@example.com",
-        "file_count": 42,
-        "last_modified": timezone.now().isoformat(),
-        "has_access": True
-    }
-    
-    # Optionally store/update folder information in database
     try:
-        folder, created = GoogleDriveFolder.objects.get_or_create(
-            folder_id=folder_id,
-            defaults={
-                'folder_name': mock_response['folder_name'],
-                'owner_email': mock_response['owner'],
-                'user': request.user,
-                'last_validated': timezone.now()
-            }
-        )
+        # Initialize Google Drive service
+        drive_service = GoogleDriveService()
         
-        if not created:
-            # Update existing folder
-            folder.last_validated = timezone.now()
-            folder.save()
+        # Validate folder using Google Drive API
+        folder_info = drive_service.validate_folder(folder_id)
+        
+        if not folder_info:
+            return Response(
+                {"error": "Folder not found or access denied"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Successful response from Google Drive API
+        response_data = {
+            "status": "success",
+            "folder_id": folder_info['folder_id'],
+            "folder_name": folder_info['name'],
+            "owner": folder_info['owner'],
+            "file_count": folder_info['file_count'],
+            "last_modified": folder_info['last_modified'],
+            "has_access": folder_info['has_access']
+        }
+        
+        # Store/update folder information in database
+        try:
+            folder, created = GoogleDriveFolder.objects.get_or_create(
+                folder_id=folder_id,
+                defaults={
+                    'folder_name': folder_info['name'],
+                    'owner_email': folder_info['owner'],
+                    'user': request.user,
+                    'last_validated': timezone.now()
+                }
+            )
             
+            if not created:
+                # Update existing folder
+                folder.folder_name = folder_info['name']
+                folder.owner_email = folder_info['owner']
+                folder.last_validated = timezone.now()
+                folder.save()
+                
+        except Exception as e:
+            # Log error but don't fail the API call
+            print(f"Database error: {e}")
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
     except Exception as e:
-        # In production, you might want to log this error
-        pass
-    
-    return Response(mock_response, status=status.HTTP_200_OK)
+        # Handle Google API errors
+        error_message = str(e)
+        if "HttpError 404" in error_message:
+            return Response(
+                {"error": "Folder not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        elif "HttpError 403" in error_message:
+            return Response(
+                {"error": "Access denied to folder"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        else:
+            return Response(
+                {"error": f"Google Drive API error: {error_message}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @extend_schema(
@@ -293,11 +314,8 @@ def setup_google_drive_watch(request):
     """
     Setup watch configuration for a Google Drive folder.
     
-    This is a mock implementation that simulates setting up a watch.
-    In a real implementation, this would use Google Drive API to:
-    - Create a watch request to Google Drive
-    - Store the watch configuration in the database
-    - Handle webhook URLs and notification preferences
+    Uses Google Drive API to create a watch request and stores
+    the configuration in the database.
     
     Requires authentication.
     """
@@ -312,24 +330,35 @@ def setup_google_drive_watch(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    # Check if folder exists and user has access (mock check)
-    if folder_id == "invalid_folder":
-        return Response(
-            {"error": "Folder not found or not accessible"},
-            status=status.HTTP_404_NOT_FOUND
-        )
-    
     try:
+        # Initialize Google Drive service
+        drive_service = GoogleDriveService()
+        
+        # First validate the folder exists and user has access
+        folder_info = drive_service.validate_folder(folder_id)
+        if not folder_info:
+            return Response(
+                {"error": "Folder not found or not accessible"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         # Try to get or create the folder record
         folder, folder_created = GoogleDriveFolder.objects.get_or_create(
             folder_id=folder_id,
             defaults={
-                'folder_name': f"Folder ({folder_id[:8]}...)",
-                'owner_email': "unknown@example.com",
+                'folder_name': folder_info['name'],
+                'owner_email': folder_info['owner'],
                 'user': request.user,
                 'last_validated': timezone.now()
             }
         )
+        
+        # Update folder info if it already exists
+        if not folder_created:
+            folder.folder_name = folder_info['name']
+            folder.owner_email = folder_info['owner']
+            folder.last_validated = timezone.now()
+            folder.save()
         
         # Check if watch configuration already exists
         existing_config = GoogleDriveWatchConfig.objects.filter(
@@ -344,6 +373,15 @@ def setup_google_drive_watch(request):
                 status=status.HTTP_409_CONFLICT
             )
         
+        # Setup watch using Google Drive API
+        watch_result = drive_service.setup_watch(folder_id, webhook_url)
+        
+        if not watch_result:
+            return Response(
+                {"error": "Failed to setup Google Drive watch"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
         # Create new watch configuration
         watch_config = GoogleDriveWatchConfig.objects.create(
             folder=folder,
@@ -351,11 +389,11 @@ def setup_google_drive_watch(request):
             notification_type=notification_type,
             webhook_url=webhook_url,
             email_notifications=email_notifications,
-            resource_id=f"watch_{uuid.uuid4().hex[:8]}",
-            expiration=timezone.now() + timedelta(days=30)  # Mock 30-day expiration
+            resource_id=watch_result.get('folder_id', f"watch_{uuid.uuid4().hex[:8]}"),
+            expiration=timezone.now() + timedelta(days=30)
         )
         
-        # Mock successful response
+        # Successful response
         response_data = {
             "status": "success",
             "message": "Watch configuration created successfully",
@@ -373,7 +411,19 @@ def setup_google_drive_watch(request):
         return Response(response_data, status=status.HTTP_201_CREATED)
         
     except Exception as e:
-        return Response(
-            {"error": f"Failed to create watch configuration: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        error_message = str(e)
+        if "HttpError 404" in error_message:
+            return Response(
+                {"error": "Folder not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        elif "HttpError 403" in error_message:
+            return Response(
+                {"error": "Access denied to folder"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        else:
+            return Response(
+                {"error": f"Failed to create watch configuration: {error_message}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

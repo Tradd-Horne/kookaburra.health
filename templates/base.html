@@ -51,6 +51,22 @@
             text-decoration: underline;
         }
         
+        .nav-logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
+            margin-right: 1rem;
+            padding: 0;
+            text-decoration: none;
+        }
+        
+        .nav-logout-btn:hover {
+            text-decoration: underline;
+        }
+        
         main {
             min-height: calc(100vh - 200px);
         }
@@ -139,7 +155,7 @@
                     <a href="/admin/">Admin</a>
                     <form method="post" action="{% url 'users:logout' %}" style="display: inline;">
                         {% csrf_token %}
-                        <button type="submit" style="background: none; border: none; color: white; cursor: pointer; text-decoration: underline;">Logout</button>
+                        <button type="submit" class="nav-logout-btn">Logout</button>
                     </form>
                     <span style="float: right;">Welcome, {{ user.username }}!</span>
                 {% else %}

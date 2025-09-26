@@ -11,15 +11,6 @@
     <div class="finder-columns">
         <div class="finder-column">
             <div class="finder-column-header">Categories</div>
-            <div class="finder-item" data-category="google-sheets">
-                <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
-                    <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
-                </svg>
-                <span>Google Sheets</span>
-                <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
-                    <path d="M2 2L6 4L2 6z" fill="#999"/>
-                </svg>
-            </div>
             <div class="finder-item" data-category="google-drive">
                 <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
                     <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
@@ -42,21 +33,6 @@
         
         <div class="finder-column">
             <div class="finder-column-header" id="column2-header">Workflows</div>
-            
-            <!-- Google Sheets Content (hidden by default) -->
-            <div id="google-sheets-content" style="display: none;">
-                <div class="finder-item active">
-                    <svg width="16" height="16" viewBox="0 0 16 16" class="file-icon">
-                        <rect width="16" height="16" rx="2" fill="#0f9d58"/>
-                        <path d="M3 5h10v1H3zM3 7h10v1H3zM3 9h10v1H3zM3 11h10v1H3z" fill="white"/>
-                        <path d="M5 5v7M8 5v7M11 5v7" stroke="white" stroke-width="0.5"/>
-                    </svg>
-                    <span>Personal Budget Tracker</span>
-                    <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
-                        <path d="M2 2L6 4L2 6z" fill="#999"/>
-                    </svg>
-                </div>
-            </div>
             
             <!-- Google Drive Content (hidden by default) -->
             <div id="google-drive-content" style="display: none;">
@@ -91,22 +67,6 @@
         <div class="finder-column">
             <div class="finder-column-header" id="column3-header">SALT-Looong-weekend</div>
             
-            <!-- Google Sheets Preview (hidden by default) -->
-            <div id="google-sheets-preview" style="display: none;">
-                <div class="finder-preview">
-                    <div class="finder-preview-info">
-                        <h3>Personal Budget Tracker</h3>
-                        <div class="finder-preview-details">
-                            <div><strong>Status:</strong> Connected</div>
-                            <div><strong>Type:</strong> Google Sheets API</div>
-                            <div><strong>Last Sync:</strong> 5 minutes ago</div>
-                            <div><strong>Permissions:</strong> Read/Write</div>
-                        </div>
-                        <button class="btn" style="margin-top: 0.5rem;">Manage Connection</button>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Google Drive Preview (hidden by default) -->
             <div id="google-drive-preview" style="display: none;">
                 <div class="finder-preview">
@@ -120,6 +80,7 @@
                             <div><strong>Path:</strong> /Shared/Projects/SALT</div>
                         </div>
                         <button class="btn" style="margin-top: 0.5rem;" onclick="openConfigureWatchModal()">Configure Watch</button>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="openHowToGuideModal()">How to Guide</button>
                     </div>
                 </div>
             </div>
@@ -177,6 +138,67 @@
             <button class="btn btn-secondary" onclick="closeConfigureWatchModal()">Cancel</button>
             <button class="btn" id="validateBtn" onclick="validateFolder()">Validate Folder</button>
             <button class="btn" id="saveBtn" onclick="saveFolderWatch()" style="display: none;">Start Watching</button>
+        </div>
+    </div>
+</div>
+
+<!-- How to Guide Modal -->
+<div id="howToGuideModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>How to Connect Google Drive</h3>
+            <span class="close" onclick="closeHowToGuideModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <h4>Step 1: Set Up Google Cloud Project</h4>
+            <ol>
+                <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                <li>Create a new project (or select an existing one)</li>
+                <li>Enable the Google Drive API:
+                    <ul>
+                        <li>Click "Enable APIs and Services"</li>
+                        <li>Search for "Google Drive API"</li>
+                        <li>Click "Enable"</li>
+                    </ul>
+                </li>
+            </ol>
+            
+            <h4>Step 2: Create OAuth 2.0 Credentials</h4>
+            <ol>
+                <li>In Google Cloud Console, go to "Credentials"</li>
+                <li>Click "Create Credentials" → "OAuth client ID"</li>
+                <li>Choose "Desktop app" as application type</li>
+                <li>Name it (e.g., "Flowtels Drive Integration")</li>
+                <li>Download the credentials as <code>credentials.json</code></li>
+            </ol>
+            
+            <h4>Step 3: Configure Your Environment</h4>
+            <ol>
+                <li>Place <code>credentials.json</code> in your project root directory</li>
+                <li>Install required packages:
+                    <pre><code>pip install google-api-python-client google-auth google-auth-oauthlib</code></pre>
+                </li>
+                <li>Add packages to <code>requirements/base.txt</code>:
+                    <pre><code>google-api-python-client==2.100.0
+google-auth==2.23.0
+google-auth-oauthlib==1.1.0</code></pre>
+                </li>
+            </ol>
+            
+            <h4>Step 4: First-Time Authentication</h4>
+            <ol>
+                <li>When you first use the connection, Google will open a browser</li>
+                <li>Sign in with your Google account</li>
+                <li>Grant permissions to access Google Drive</li>
+                <li>The system will save a token for future use</li>
+            </ol>
+            
+            <div class="alert alert-info">
+                <strong>Note:</strong> Currently, the system is using mock data. Complete these steps to enable real Google Drive integration.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeHowToGuideModal()">Close</button>
         </div>
     </div>
 </div>
@@ -406,6 +428,63 @@
 .btn-secondary:hover {
     background-color: #5a6268;
 }
+
+/* How to Guide Modal Styles */
+.modal-body h4 {
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #2c3e50;
+}
+
+.modal-body h4:first-child {
+    margin-top: 0;
+}
+
+.modal-body ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.modal-body li {
+    margin-bottom: 0.5rem;
+}
+
+.modal-body ul {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+}
+
+.modal-body pre {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    overflow-x: auto;
+}
+
+.modal-body code {
+    background-color: #f5f5f5;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.85rem;
+}
+
+.modal-body pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+.alert-info {
+    background-color: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    color: #0066cc;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1.5rem;
+}
 </style>
 
 <script>
@@ -426,24 +505,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const column2Header = document.getElementById('column2-header');
             const column3Header = document.getElementById('column3-header');
             
-            if (category === 'google-sheets') {
-                // Show Google Sheets content
-                document.getElementById('google-sheets-content').style.display = 'block';
-                document.getElementById('google-drive-content').style.display = 'none';
-                document.getElementById('workflows-content').style.display = 'none';
-                document.getElementById('google-sheets-preview').style.display = 'block';
-                document.getElementById('google-drive-preview').style.display = 'none';
-                document.getElementById('workflows-preview').style.display = 'none';
-                
-                // Update headers
-                column2Header.textContent = 'Google Sheets';
-                column3Header.textContent = 'Personal Budget Tracker';
-            } else if (category === 'google-drive') {
+            if (category === 'google-drive') {
                 // Show Google Drive content
-                document.getElementById('google-sheets-content').style.display = 'none';
                 document.getElementById('google-drive-content').style.display = 'block';
                 document.getElementById('workflows-content').style.display = 'none';
-                document.getElementById('google-sheets-preview').style.display = 'none';
                 document.getElementById('google-drive-preview').style.display = 'block';
                 document.getElementById('workflows-preview').style.display = 'none';
                 
@@ -452,10 +517,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 column3Header.textContent = 'Project Documents';
             } else if (category === 'workflows') {
                 // Show Workflows content
-                document.getElementById('google-sheets-content').style.display = 'none';
                 document.getElementById('google-drive-content').style.display = 'none';
                 document.getElementById('workflows-content').style.display = 'block';
-                document.getElementById('google-sheets-preview').style.display = 'none';
                 document.getElementById('google-drive-preview').style.display = 'none';
                 document.getElementById('workflows-preview').style.display = 'block';
                 
@@ -466,6 +529,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
 // Modal functions
 function openConfigureWatchModal() {
@@ -511,7 +590,7 @@ async function validateFolder() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({ folder_id: folderId })
         });
@@ -520,12 +599,13 @@ async function validateFolder() {
         
         document.getElementById('loadingSpinner').style.display = 'none';
         
-        if (data.success) {
-            // Show folder info
-            document.getElementById('folderName').textContent = data.folder.name;
-            document.getElementById('folderFileCount').textContent = data.folder.file_count + ' files';
-            document.getElementById('folderOwner').textContent = data.folder.owner;
-            document.getElementById('folderLastModified').textContent = data.folder.last_modified;
+        if (data.status === 'success' || data.success) {
+            // Show folder info - handle both response formats
+            const folder = data.folder || data;
+            document.getElementById('folderName').textContent = folder.folder_name || folder.name || 'Unknown';
+            document.getElementById('folderFileCount').textContent = (folder.file_count || 0) + ' files';
+            document.getElementById('folderOwner').textContent = folder.owner || 'Unknown';
+            document.getElementById('folderLastModified').textContent = folder.last_modified || 'Unknown';
             
             document.getElementById('folderInfo').style.display = 'block';
             document.getElementById('validateBtn').style.display = 'none';
@@ -551,7 +631,7 @@ async function saveFolderWatch() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({ folder_id: folderId })
         });
@@ -571,11 +651,24 @@ async function saveFolderWatch() {
     }
 }
 
+// How to Guide Modal functions
+function openHowToGuideModal() {
+    document.getElementById('howToGuideModal').style.display = 'flex';
+}
+
+function closeHowToGuideModal() {
+    document.getElementById('howToGuideModal').style.display = 'none';
+}
+
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
-    const modal = document.getElementById('configureWatchModal');
-    if (event.target === modal) {
+    const configModal = document.getElementById('configureWatchModal');
+    const guideModal = document.getElementById('howToGuideModal');
+    
+    if (event.target === configModal) {
         closeConfigureWatchModal();
+    } else if (event.target === guideModal) {
+        closeHowToGuideModal();
     }
 });
 </script>

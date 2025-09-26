@@ -14,7 +14,9 @@
       "Bash(curl:*)",
       "Bash(python test_google_drive_endpoints.py:*)",
       "Bash(pkill:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(docker-compose:*)"
     ],
     "deny": []
   }
