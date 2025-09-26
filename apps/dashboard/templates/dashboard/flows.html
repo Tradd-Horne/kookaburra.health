@@ -5,37 +5,103 @@
 
 {% block content %}
 <div class="content-card">
-    <h2>Your Flows</h2>
-    <p>Manage and monitor your automation flows here.</p>
+    <h2>Connections</h2>
+    <p>Manage your integrations and API connections:</p>
     
-    <div class="empty-state">
-        <p>You don't have any flows yet.</p>
-        <button class="btn" disabled>Create New Flow</button>
+    <div class="finder-columns">
+        <div class="finder-column">
+            <div class="finder-column-header">Categories</div>
+            <div class="finder-item" data-category="google-sheets">
+                <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
+                    <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
+                </svg>
+                <span>Google Sheets</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                    <path d="M2 2L6 4L2 6z" fill="#999"/>
+                </svg>
+            </div>
+            <div class="finder-item active" data-category="workflows">
+                <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
+                    <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
+                </svg>
+                <span>Workflows</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                    <path d="M2 2L6 4L2 6z" fill="#999"/>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="finder-column">
+            <div class="finder-column-header" id="column2-header">Workflows</div>
+            
+            <!-- Google Sheets Content (hidden by default) -->
+            <div id="google-sheets-content" style="display: none;">
+                <div class="finder-item active">
+                    <svg width="16" height="16" viewBox="0 0 16 16" class="file-icon">
+                        <rect width="16" height="16" rx="2" fill="#0f9d58"/>
+                        <path d="M3 5h10v1H3zM3 7h10v1H3zM3 9h10v1H3zM3 11h10v1H3z" fill="white"/>
+                        <path d="M5 5v7M8 5v7M11 5v7" stroke="white" stroke-width="0.5"/>
+                    </svg>
+                    <span>Personal Budget Tracker</span>
+                    <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                        <path d="M2 2L6 4L2 6z" fill="#999"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Workflows Content (visible by default) -->
+            <div id="workflows-content">
+                <div class="finder-item active">
+                    <svg width="16" height="16" viewBox="0 0 16 16" class="file-icon">
+                        <rect width="16" height="16" rx="2" fill="#f39c12"/>
+                        <path d="M3 3h10v2H3zM3 6h8v2H3zM3 9h6v2H3zM3 12h4v2H3z" fill="white"/>
+                    </svg>
+                    <span>SALT-Looong-weekend</span>
+                    <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                        <path d="M2 2L6 4L2 6z" fill="#999"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="finder-column">
+            <div class="finder-column-header" id="column3-header">SALT-Looong-weekend</div>
+            
+            <!-- Google Sheets Preview (hidden by default) -->
+            <div id="google-sheets-preview" style="display: none;">
+                <div class="finder-preview">
+                    <div class="finder-preview-info">
+                        <h3>Personal Budget Tracker</h3>
+                        <div class="finder-preview-details">
+                            <div><strong>Status:</strong> Connected</div>
+                            <div><strong>Type:</strong> Google Sheets API</div>
+                            <div><strong>Last Sync:</strong> 5 minutes ago</div>
+                            <div><strong>Permissions:</strong> Read/Write</div>
+                        </div>
+                        <button class="btn" style="margin-top: 0.5rem;">Manage Connection</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Workflows Preview (visible by default) -->
+            <div id="workflows-preview">
+                <div class="finder-preview">
+                    <div class="finder-preview-info">
+                        <h3>SALT Long Weekend Project</h3>
+                        <div class="finder-preview-details">
+                            <div><strong>Size:</strong> 7.8 KB</div>
+                            <div><strong>Type:</strong> Workflow Document</div>
+                            <div><strong>Created:</strong> Today at 11:30 AM</div>
+                            <div><strong>Category:</strong> Workflows</div>
+                        </div>
+                        <button class="btn" style="margin-top: 0.5rem;">Open Workflow</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="content-card">
-    <h2>Flow Templates</h2>
-    <p>Get started quickly with pre-built flow templates:</p>
-    
-    <div class="template-grid">
-        <div class="template-card">
-            <h3>Basic API Workflow</h3>
-            <p>Simple HTTP request and response handling</p>
-            <button class="btn btn-secondary" disabled>Coming Soon</button>
-        </div>
-        <div class="template-card">
-            <h3>Data Pipeline</h3>
-            <p>Extract, transform, and load data between systems</p>
-            <button class="btn btn-secondary" disabled>Coming Soon</button>
-        </div>
-        <div class="template-card">
-            <h3>Scheduled Tasks</h3>
-            <p>Run automated tasks on a schedule</p>
-            <button class="btn btn-secondary" disabled>Coming Soon</button>
-        </div>
-    </div>
-</div>
 
 <style>
 .empty-state {
@@ -49,30 +115,108 @@
     font-size: 0.95rem;
 }
 
-.template-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+.finder-columns {
+    display: flex;
     margin-top: 1.5rem;
+    background-color: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    overflow: hidden;
+    min-height: 200px;
 }
 
-.template-card {
-    background-color: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+.finder-column {
+    flex: 1;
+    border-right: 1px solid #d0d0d0;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
 }
 
-.template-card h3 {
-    color: #2c3e50;
-    margin-bottom: 0.75rem;
+.finder-column:last-child {
+    border-right: none;
+}
+
+.finder-column-header {
+    background-color: #f6f6f6;
+    color: #333333;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    border-bottom: 1px solid #d0d0d0;
+}
+
+.finder-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    color: #333333;
+    cursor: pointer;
+    font-size: 0.8rem;
+    gap: 8px;
+    transition: background-color 0.1s ease;
+}
+
+.finder-item:hover {
+    background-color: #f0f0f0;
+}
+
+.finder-item.active {
+    background-color: #0066cc;
+    color: #ffffff;
+}
+
+.finder-item span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-icon, .file-icon {
+    flex-shrink: 0;
+}
+
+.arrow-icon {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.finder-preview {
+    padding: 12px;
+    color: #333333;
+    overflow-y: auto;
+}
+
+.finder-preview-icon {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.finder-preview-info h3 {
     font-size: 1.1rem;
+    margin-bottom: 6px;
+    color: #2c3e50;
 }
 
-.template-card p {
-    color: #6c757d;
-    margin-bottom: 1rem;
+.finder-preview-info p {
     font-size: 0.85rem;
+    line-height: 1.4;
+    color: #666666;
+    margin-bottom: 8px;
+}
+
+.finder-preview-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.75rem;
+    color: #777777;
+    margin-bottom: 8px;
+}
+
+.finder-preview-details strong {
+    color: #333333;
 }
 
 .btn[disabled] {
@@ -80,4 +224,48 @@
     cursor: not-allowed;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categoryItems = document.querySelectorAll('[data-category]');
+    
+    categoryItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            
+            // Remove active class from all category items
+            categoryItems.forEach(cat => cat.classList.remove('active'));
+            
+            // Add active class to clicked item
+            this.classList.add('active');
+            
+            // Update column headers and content
+            const column2Header = document.getElementById('column2-header');
+            const column3Header = document.getElementById('column3-header');
+            
+            if (category === 'google-sheets') {
+                // Show Google Sheets content
+                document.getElementById('google-sheets-content').style.display = 'block';
+                document.getElementById('workflows-content').style.display = 'none';
+                document.getElementById('google-sheets-preview').style.display = 'block';
+                document.getElementById('workflows-preview').style.display = 'none';
+                
+                // Update headers
+                column2Header.textContent = 'Google Sheets';
+                column3Header.textContent = 'Personal Budget Tracker';
+            } else if (category === 'workflows') {
+                // Show Workflows content
+                document.getElementById('google-sheets-content').style.display = 'none';
+                document.getElementById('workflows-content').style.display = 'block';
+                document.getElementById('google-sheets-preview').style.display = 'none';
+                document.getElementById('workflows-preview').style.display = 'block';
+                
+                // Update headers
+                column2Header.textContent = 'Workflows';
+                column3Header.textContent = 'SALT-Looong-weekend';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
