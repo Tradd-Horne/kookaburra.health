@@ -1,0 +1,37 @@
+# Development Dockerfile
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=config.settings.dev
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        netcat-traditional \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set work directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements/ /app/requirements/
+
+# Install all Python dependencies (including dev)
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements/dev.txt
+
+# Copy project
+COPY . /app/
+
+# Create necessary directories
+RUN mkdir -p /app/staticfiles /app/mediafiles
+
+# Make scripts executable
+RUN chmod +x /app/scripts/*.sh
+
+# Run as root in development for easier file permissions
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

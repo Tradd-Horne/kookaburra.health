@@ -1,0 +1,11 @@
+-r base.txt
+
+# Production monitoring (optional)
+sentry-sdk==1.39.1
+
+# Redis for caching (optional)
+redis==5.0.1
+django-redis==5.4.0
+
+# Email backend for production
+django-anymail==10.2  # For transactional email services

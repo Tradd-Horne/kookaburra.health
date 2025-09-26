@@ -1,0 +1,83 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Flows - Dashboard{% endblock %}
+{% block page_title %}Flows Management{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <h2>Your Flows</h2>
+    <p>Manage and monitor your automation flows here.</p>
+    
+    <div class="empty-state">
+        <p>You don't have any flows yet.</p>
+        <button class="btn" disabled>Create New Flow</button>
+    </div>
+</div>
+
+<div class="content-card">
+    <h2>Flow Templates</h2>
+    <p>Get started quickly with pre-built flow templates:</p>
+    
+    <div class="template-grid">
+        <div class="template-card">
+            <h3>Basic API Workflow</h3>
+            <p>Simple HTTP request and response handling</p>
+            <button class="btn btn-secondary" disabled>Coming Soon</button>
+        </div>
+        <div class="template-card">
+            <h3>Data Pipeline</h3>
+            <p>Extract, transform, and load data between systems</p>
+            <button class="btn btn-secondary" disabled>Coming Soon</button>
+        </div>
+        <div class="template-card">
+            <h3>Scheduled Tasks</h3>
+            <p>Run automated tasks on a schedule</p>
+            <button class="btn btn-secondary" disabled>Coming Soon</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.empty-state {
+    text-align: center;
+    padding: 3rem 0;
+    color: #7f8c8d;
+}
+
+.empty-state p {
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.template-card {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.template-card h3 {
+    color: #2c3e50;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+}
+
+.template-card p {
+    color: #6c757d;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+}
+
+.btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}

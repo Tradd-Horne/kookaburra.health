@@ -1,0 +1,32 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Home - Dashboard{% endblock %}
+{% block page_title %}Dashboard Home{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <h2>Welcome to Your Dashboard</h2>
+    <p>This is your personal dashboard where you can manage your flows and settings.</p>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>0</h3>
+            <p>Active Flows</p>
+        </div>
+        <div class="stat-card">
+            <h3>0</h3>
+            <p>Total Runs</p>
+        </div>
+        <div class="stat-card">
+            <h3>0</h3>
+            <p>Success Rate</p>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <h2>Quick Actions</h2>
+    <a href="{% url 'dashboard:flows' %}" class="btn">Manage Flows</a>
+    <a href="{% url 'dashboard:settings' %}" class="btn btn-secondary">Account Settings</a>
+</div>
+{% endblock %}

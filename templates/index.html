@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Flowtels{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 3rem 0;">
+    <h1>Welcome to Flowtels</h1>
+    <p style="font-size: 1.2rem; color: #666; margin: 2rem 0;">
+        A production-ready Django template with Docker, PostgreSQL, and HTTPS support.
+    </p>
+    
+    {% if user.is_authenticated %}
+        <p>Welcome back, {{ user.get_full_name|default:user.username }}!</p>
+        <p>
+            <a href="/api/docs/" class="btn">API Documentation</a>
+            <a href="{% url 'users:password_change' %}" class="btn">Change Password</a>
+        </p>
+    {% else %}
+        <p>
+            <a href="{% url 'users:signup' %}" class="btn">Get Started</a>
+            <a href="{% url 'users:login' %}" class="btn">Login</a>
+        </p>
+    {% endif %}
+    
+    <div style="margin-top: 3rem;">
+        <h2>Features</h2>
+        <ul style="list-style: none; padding: 0; max-width: 600px; margin: 0 auto; text-align: left;">
+            <li>✓ Django 5.0+ with custom user model</li>
+            <li>✓ Dockerized development and production environments</li>
+            <li>✓ PostgreSQL with persistent volumes</li>
+            <li>✓ HTTPS with Let's Encrypt (production)</li>
+            <li>✓ Nginx + Gunicorn for production</li>
+            <li>✓ Django REST Framework with API documentation</li>
+            <li>✓ User authentication (signup, login, password reset)</li>
+            <li>✓ Static files handling with WhiteNoise</li>
+            <li>✓ Environment-based configuration</li>
+            <li>✓ Database backup/restore scripts</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
