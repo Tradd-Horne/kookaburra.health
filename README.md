@@ -302,3 +302,24 @@ MIT License - see LICENSE file for details.
   - Home page: http://localhost:8000
   - Admin panel: http://localhost:8000/admin/
   - API docs: http://localhost:8000/api/docs/
+
+    Basic workflow:
+  1. Make your changes
+  2. git add . (or git add specific-file.py for individual files)
+  3. git commit -m "Your commit message"
+  4. git push
+
+  Example:
+  git add .
+  git commit -m "Add new feature or fix bug"
+  git push
+
+  Useful commands:
+  - git status - See what files have changed
+  - git diff - See exactly what changed in files
+  - git log --oneline - See recent commits
+  - git push - Push your committed changes to GitHub
+
+  Since you used -u origin master in the first push, git remembers
+  where to push, so you don't need to specify the remote and branch
+   again.
