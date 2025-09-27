@@ -13,6 +13,7 @@ from rest_framework.response import Response
 
 from .models import GoogleDriveFolder, GoogleDriveWatchConfig
 from .google_drive_service import GoogleDriveService
+import pytz
 
 
 @extend_schema(
@@ -427,3 +428,123 @@ def setup_google_drive_watch(request):
                 {"error": f"Failed to create watch configuration: {error_message}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+@extend_schema(
+    summary="List Google Drive Watch Configurations",
+    description="Get all active Google Drive watch configurations for the current user",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "watches": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "folder_name": {"type": "string"},
+                            "folder_id": {"type": "string"},
+                            "status": {"type": "string"},
+                            "file_count": {"type": "integer"},
+                            "last_activity": {"type": "string"},
+                            "expiration_date": {"type": "string"},
+                            "days_until_expiration": {"type": "integer"},
+                            "last_validated": {"type": "string"},
+                            "watch_type": {"type": "string"},
+                            "created_date": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        },
+        401: {
+            "type": "object",
+            "properties": {
+                "detail": {"type": "string"}
+            }
+        }
+    },
+    tags=["Google Drive"]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_google_drive_watches(request):
+    """
+    List all active Google Drive watch configurations for the current user.
+    
+    Returns real-time data about watched folders including connection status,
+    expiration dates, and last activity times in Queensland timezone.
+    """
+    try:
+        # Get Queensland timezone
+        qld_tz = pytz.timezone('Australia/Brisbane')
+        
+        # Get all active watch configurations for the user
+        watch_configs = GoogleDriveWatchConfig.objects.filter(
+            user=request.user,
+            is_active=True
+        ).select_related('folder').order_by('-created_at')
+        
+        # Initialize Google Drive service for real-time data
+        drive_service = GoogleDriveService()
+        
+        watches = []
+        for config in watch_configs:
+            folder = config.folder
+            
+            # Get real-time folder data
+            try:
+                folder_info = drive_service.validate_folder(folder.folder_id)
+                if folder_info:
+                    file_count = folder_info['file_count']
+                    connection_status = "Connected"
+                    last_activity = folder_info.get('last_modified', '')
+                else:
+                    file_count = 0
+                    connection_status = "Disconnected"
+                    last_activity = ""
+                    
+            except Exception as e:
+                file_count = 0
+                connection_status = "Error"
+                last_activity = ""
+            
+            # Calculate days until expiration
+            now = timezone.now()
+            days_until_expiration = (config.expiration - now).days if config.expiration > now else 0
+            
+            # Convert timestamps to Queensland time with DD-MM-YYYY format
+            last_validated_qld = folder.last_validated.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p AEST')
+            created_qld = config.created_at.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p AEST')
+            expiration_qld = config.expiration.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p AEST')
+            
+            # Generate Google Drive folder URL
+            folder_url = f"https://drive.google.com/drive/folders/{folder.folder_id}"
+            
+            watch_data = {
+                "id": config.id,
+                "folder_name": folder.folder_name,
+                "folder_id": folder.folder_id,
+                "folder_url": folder_url,
+                "status": connection_status,
+                "file_count": file_count,
+                "last_activity": last_activity,
+                "expiration_date": expiration_qld,
+                "days_until_expiration": days_until_expiration,
+                "last_validated": last_validated_qld,
+                "watch_type": "Google Drive Folder",
+                "created_date": created_qld,
+                "notification_type": config.notification_type,
+                "email_notifications": config.email_notifications
+            }
+            
+            watches.append(watch_data)
+        
+        return Response({"watches": watches}, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to fetch watch configurations: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

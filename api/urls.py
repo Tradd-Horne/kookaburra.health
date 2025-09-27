@@ -22,6 +22,7 @@ urlpatterns = [
     # Google Drive endpoints
     path('google-drive/validate-folder/', views.validate_google_drive_folder, name='validate_google_drive_folder'),
     path('google-drive/setup-watch/', views.setup_google_drive_watch, name='setup_google_drive_watch'),
+    path('google-drive/list-watches/', views.list_google_drive_watches, name='list_google_drive_watches'),
     
     # Google OAuth endpoints
     path('google-auth/start/', google_auth_views.start_google_auth, name='start_google_auth'),
