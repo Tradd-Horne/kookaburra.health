@@ -26,6 +26,7 @@ urlpatterns = [
     
     # Google Sheets endpoints
     path('google-sheets/import-bookings/', views.import_booking_data, name='import_booking_data'),
+    path('google-sheets/last-import/', views.get_last_import_info, name='get_last_import_info'),
     
     # Google OAuth endpoints
     path('google-auth/start/', google_auth_views.start_google_auth, name='start_google_auth'),

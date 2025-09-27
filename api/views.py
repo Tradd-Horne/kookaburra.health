@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import GoogleDriveFolder, GoogleDriveWatchConfig
+from .models import GoogleDriveFolder, GoogleDriveWatchConfig, IngestionRun
 from .google_drive_service import GoogleDriveService
 import pytz
 
@@ -714,5 +714,94 @@ def import_booking_data(request):
     except Exception as e:
         return Response(
             {"error": f"Import failed: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@extend_schema(
+    summary="Get Last Import Info",
+    description="Get information about the most recent booking data import",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "last_import": {
+                    "type": "object",
+                    "properties": {
+                        "completed_at": {"type": "string", "format": "date-time"},
+                        "formatted_time": {"type": "string"},
+                        "filename": {"type": "string"},
+                        "status": {"type": "string"},
+                        "rows_inserted": {"type": "integer"},
+                        "rows_updated": {"type": "integer"}
+                    }
+                }
+            }
+        },
+        401: {
+            "type": "object",
+            "properties": {
+                "detail": {"type": "string"}
+            }
+        }
+    },
+    tags=["Google Sheets"]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_last_import_info(request):
+    """
+    Get information about the most recent booking data import.
+    
+    Returns the timestamp, filename, and status of the last completed
+    ingestion run for the current user's watched folders.
+    """
+    try:
+        # Get Queensland timezone
+        qld_tz = pytz.timezone('Australia/Brisbane')
+        
+        # Get user's folders
+        user_folders = GoogleDriveFolder.objects.filter(
+            user=request.user,
+            is_active=True
+        )
+        
+        if not user_folders.exists():
+            return Response({
+                "last_import": None,
+                "message": "No watched folders found"
+            }, status=status.HTTP_200_OK)
+        
+        # Get the most recent completed ingestion run across all user's folders
+        last_import = IngestionRun.objects.filter(
+            folder__in=user_folders,
+            completed_at__isnull=False
+        ).order_by('-completed_at').first()
+        
+        if not last_import:
+            return Response({
+                "last_import": None,
+                "message": "No imports have been completed yet"
+            }, status=status.HTTP_200_OK)
+        
+        # Format the time in Queensland timezone
+        completed_qld = last_import.completed_at.astimezone(qld_tz)
+        formatted_time = completed_qld.strftime('%d-%m-%Y %I:%M:%S %p AEST')
+        
+        return Response({
+            "last_import": {
+                "completed_at": last_import.completed_at.isoformat(),
+                "formatted_time": formatted_time,
+                "filename": last_import.filename,
+                "status": last_import.status,
+                "rows_inserted": last_import.rows_inserted,
+                "rows_updated": last_import.rows_updated,
+                "rows_quarantined": last_import.rows_quarantined
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to get import info: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

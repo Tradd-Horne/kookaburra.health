@@ -76,10 +76,13 @@
                             <div class="loading-message">Loading watch configurations...</div>
                         </div>
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e1e5e9;">
-                            <button class="btn" style="margin-top: 0.5rem;" onclick="openConfigureWatchModal()">Add New Watch</button>
-                            <button class="btn btn-import" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="importBookingData()">Import Bookings</button>
-                            <button class="btn btn-secondary" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="openHowToGuideModal()">How to Guide</button>
-                            <button class="btn btn-secondary" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="authenticateGoogle()">Authenticate Google</button>
+                            <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                                <button class="btn btn-import" onclick="importBookingData()">Import Bookings</button>
+                                <div id="last-import-info" style="margin-left: 1rem; font-size: 0.8rem; color: #666;">
+                                    <span class="loading-text">Loading...</span>
+                                </div>
+                            </div>
+                            <button class="btn" onclick="openConfigureWatchModal()">Add New Watch</button>
                         </div>
                     </div>
                 </div>
@@ -142,66 +145,6 @@
     </div>
 </div>
 
-<!-- How to Guide Modal -->
-<div id="howToGuideModal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-            <h3>How to Connect Google Drive</h3>
-            <span class="close" onclick="closeHowToGuideModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <h4>Step 1: Set Up Google Cloud Project</h4>
-            <ol>
-                <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
-                <li>Create a new project (or select an existing one)</li>
-                <li>Enable the Google Drive API:
-                    <ul>
-                        <li>Click "Enable APIs and Services"</li>
-                        <li>Search for "Google Drive API"</li>
-                        <li>Click "Enable"</li>
-                    </ul>
-                </li>
-            </ol>
-            
-            <h4>Step 2: Create OAuth 2.0 Credentials</h4>
-            <ol>
-                <li>In Google Cloud Console, go to "Credentials"</li>
-                <li>Click "Create Credentials" → "OAuth client ID"</li>
-                <li>Choose "Desktop app" as application type</li>
-                <li>Name it (e.g., "Flowtels Drive Integration")</li>
-                <li>Download the credentials as <code>credentials.json</code></li>
-            </ol>
-            
-            <h4>Step 3: Configure Your Environment</h4>
-            <ol>
-                <li>Place <code>credentials.json</code> in your project root directory</li>
-                <li>Install required packages:
-                    <pre><code>pip install google-api-python-client google-auth google-auth-oauthlib</code></pre>
-                </li>
-                <li>Add packages to <code>requirements/base.txt</code>:
-                    <pre><code>google-api-python-client==2.100.0
-google-auth==2.23.0
-google-auth-oauthlib==1.1.0</code></pre>
-                </li>
-            </ol>
-            
-            <h4>Step 4: First-Time Authentication</h4>
-            <ol>
-                <li>When you first use the connection, Google will open a browser</li>
-                <li>Sign in with your Google account</li>
-                <li>Grant permissions to access Google Drive</li>
-                <li>The system will save a token for future use</li>
-            </ol>
-            
-            <div class="alert alert-info">
-                <strong>Note:</strong> Currently, the system is using mock data. Complete these steps to enable real Google Drive integration.
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeHowToGuideModal()">Close</button>
-        </div>
-    </div>
-</div>
 
 <style>
 .empty-state {
@@ -443,62 +386,6 @@ google-auth-oauthlib==1.1.0</code></pre>
     cursor: not-allowed;
 }
 
-/* How to Guide Modal Styles */
-.modal-body h4 {
-    font-size: 1.1rem;
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-    color: #2c3e50;
-}
-
-.modal-body h4:first-child {
-    margin-top: 0;
-}
-
-.modal-body ol {
-    margin-bottom: 1rem;
-    padding-left: 1.5rem;
-}
-
-.modal-body li {
-    margin-bottom: 0.5rem;
-}
-
-.modal-body ul {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-    padding-left: 1.5rem;
-}
-
-.modal-body pre {
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 0.75rem;
-    margin: 0.5rem 0;
-    overflow-x: auto;
-}
-
-.modal-body code {
-    background-color: #f5f5f5;
-    padding: 0.2rem 0.4rem;
-    border-radius: 3px;
-    font-size: 0.85rem;
-}
-
-.modal-body pre code {
-    background-color: transparent;
-    padding: 0;
-}
-
-.alert-info {
-    background-color: #e7f3ff;
-    border: 1px solid #b3d9ff;
-    color: #0066cc;
-    padding: 1rem;
-    border-radius: 4px;
-    margin-top: 1.5rem;
-}
 
 /* Watch configurations styles */
 .watch-item {
@@ -639,8 +526,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 column2Header.textContent = 'Google Drive';
                 column3Header.textContent = 'Watched Folders';
                 
-                // Load watch configurations
+                // Load watch configurations and last import info
                 loadWatchConfigurations();
+                loadLastImportInfo();
             } else if (category === 'workflows') {
                 // Show Workflows content
                 document.getElementById('google-drive-content').style.display = 'none';
@@ -710,6 +598,46 @@ async function loadWatchConfigurations() {
         watchList.innerHTML = `
             <div class="error-message">
                 Failed to load watch configurations. Please try again.
+            </div>
+        `;
+    }
+}
+
+// Load last import information
+async function loadLastImportInfo() {
+    const lastImportDiv = document.getElementById('last-import-info');
+    
+    try {
+        const response = await fetch('/api/google-sheets/last-import/');
+        const data = await response.json();
+        
+        if (data.last_import) {
+            const importInfo = data.last_import;
+            let statusColor = importInfo.status === 'completed' ? '#28a745' : 
+                             importInfo.status === 'partial' ? '#ffc107' : '#dc3545';
+            
+            lastImportDiv.innerHTML = `
+                <div style="line-height: 1.4;">
+                    <div><strong>Last import:</strong> ${importInfo.formatted_time}</div>
+                    <div style="font-size: 0.75rem; color: #333;">
+                        ${importInfo.filename} - ${importInfo.rows_inserted} new, ${importInfo.rows_updated} updated
+                        ${importInfo.rows_quarantined > 0 ? `, ${importInfo.rows_quarantined} quarantined` : ''}
+                    </div>
+                </div>
+            `;
+        } else {
+            lastImportDiv.innerHTML = `
+                <div style="color: #999; font-style: italic;">
+                    No imports completed yet
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Failed to load import info:', error);
+        lastImportDiv.innerHTML = `
+            <div style="color: #dc3545; font-size: 0.75rem;">
+                Error loading import info
             </div>
         `;
     }
@@ -836,59 +764,6 @@ async function saveFolderWatch() {
     }
 }
 
-// How to Guide Modal functions
-function openHowToGuideModal() {
-    document.getElementById('howToGuideModal').style.display = 'flex';
-}
-
-function closeHowToGuideModal() {
-    document.getElementById('howToGuideModal').style.display = 'none';
-}
-
-// Google Authentication
-async function authenticateGoogle() {
-    try {
-        // Check current auth status
-        const statusResponse = await fetch('/api/google-auth/status/');
-        const statusData = await statusResponse.json();
-        
-        if (statusData.authenticated) {
-            alert('Already authenticated with Google Drive!');
-            return;
-        }
-        
-        // Start OAuth flow in new window
-        const authWindow = window.open('/api/google-auth/start/', 'googleAuth', 'width=500,height=600');
-        
-        // Check if window was blocked
-        if (!authWindow) {
-            alert('Please allow popups for this site to authenticate with Google.');
-            return;
-        }
-        
-        // Poll for window closure (authentication completion)
-        const checkClosed = setInterval(() => {
-            if (authWindow.closed) {
-                clearInterval(checkClosed);
-                // Check auth status again
-                setTimeout(async () => {
-                    const newStatusResponse = await fetch('/api/google-auth/status/');
-                    const newStatusData = await newStatusResponse.json();
-                    
-                    if (newStatusData.authenticated) {
-                        alert('Google Drive authentication successful!');
-                    } else {
-                        alert('Authentication was cancelled or failed.');
-                    }
-                }, 1000);
-            }
-        }, 1000);
-        
-    } catch (error) {
-        console.error('Authentication error:', error);
-        alert('Authentication failed. Please try again.');
-    }
-}
 
 // Import Booking Data
 async function importBookingData() {
@@ -937,6 +812,8 @@ async function importBookingData() {
             }
             
             alert(message);
+            // Refresh the last import info
+            loadLastImportInfo();
         } else {
             alert('Import failed: ' + (data.error || 'Unknown error'));
         }
@@ -954,12 +831,9 @@ async function importBookingData() {
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
     const configModal = document.getElementById('configureWatchModal');
-    const guideModal = document.getElementById('howToGuideModal');
     
     if (event.target === configModal) {
         closeConfigureWatchModal();
-    } else if (event.target === guideModal) {
-        closeHowToGuideModal();
     }
 });
 </script>
