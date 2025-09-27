@@ -212,3 +212,6 @@ LOGGING = {
         },
     },
 }
+
+# Booking polling settings
+BOOKING_POLL_INTERVAL = env.int('BOOKING_POLL_INTERVAL', default=300)  # 5 minutes for development

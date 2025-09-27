@@ -57,15 +57,15 @@ class BookingIngestionService:
     
     def discover_new_files(self, folder: GoogleDriveFolder) -> List[Dict[str, Any]]:
         """
-        Discover new Google Sheets files in the watched folder.
+        Discover new Google Sheets and Excel files in the watched folder.
         Returns list of file metadata for unprocessed files.
         """
         try:
             if not self.drive_service.service:
                 self.drive_service.authenticate()
             
-            # Get all Google Sheets files in the folder
-            query = f"'{folder.folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
+            # Get both Google Sheets and Excel files in the folder
+            query = f"'{folder.folder_id}' in parents and (mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' or mimeType='application/vnd.ms-excel') and trashed=false"
             
             results = self.drive_service.service.files().list(
                 q=query,
@@ -177,8 +177,21 @@ class BookingIngestionService:
             
         except Booking.DoesNotExist:
             # Create new booking
-            # Remove metadata fields
-            clean_data = {k: v for k, v in booking_data.items() if not k.startswith('_')}
+            # Remove metadata fields and handle None values for CharFields
+            clean_data = {}
+            char_fields = ['status', 'file_as', 'first_name', 'surname', 'company', 
+                          'region', 'portal', 'room_number', 'room_type', 'agent', 
+                          'agent_ref', 'email', 'mobile', 'car_rego', 'guest_request',
+                          'enquiry_status', 'primary_source', 'rate', 'suburb', 
+                          'post_code', 'state', 'room_status', 'dual_key']
+            
+            for k, v in booking_data.items():
+                if not k.startswith('_'):
+                    # Convert None to empty string for CharFields
+                    if k in char_fields and v is None:
+                        clean_data[k] = ''
+                    else:
+                        clean_data[k] = v
             
             booking = Booking.objects.create(
                 **clean_data,
@@ -362,3 +375,45 @@ class BookingIngestionService:
                 'error': f"Folder processing failed: {str(e)}"
             })
             return results
+    
+    def ingest_file_by_id(self, folder_id: str, file_id: str, filename: str) -> Dict[str, Any]:
+        """
+        Simple wrapper for polling command - ingest file by ID.
+        Returns status dict instead of IngestionRun object.
+        """
+        try:
+            # Get folder object
+            folder = GoogleDriveFolder.objects.get(folder_id=folder_id)
+            
+            # Get file info from Google Drive
+            file_metadata = self.drive_service.get_file_metadata(file_id)
+            if not file_metadata:
+                return {'status': 'failed', 'error': 'File not found or not accessible'}
+            
+            # Build file_info dict for existing ingest_file method
+            file_info = {
+                'file_id': file_id,
+                'filename': filename,
+                'created_time': file_metadata.get('createdTime'),
+                'modified_time': file_metadata.get('modifiedTime'),
+                'data_time': self.extract_data_time_from_file(filename, 
+                    datetime.fromisoformat(file_metadata.get('modifiedTime', '').replace('Z', '+00:00'))
+                    if file_metadata.get('modifiedTime') else django_timezone.now()
+                ),
+            }
+            
+            # Run ingestion
+            ingestion_run = self.ingest_file(folder, file_info)
+            
+            return {
+                'status': 'success',
+                'ingestion_run_id': ingestion_run.id,
+                'rows_processed': ingestion_run.rows_processed,
+                'rows_inserted': ingestion_run.rows_inserted,
+                'rows_quarantined': ingestion_run.rows_quarantined,
+            }
+            
+        except GoogleDriveFolder.DoesNotExist:
+            return {'status': 'failed', 'error': 'Folder not found'}
+        except Exception as e:
+            return {'status': 'failed', 'error': str(e)}

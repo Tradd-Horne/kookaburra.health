@@ -20,7 +20,12 @@
       "Bash(pip3 install:*)",
       "Bash(python3:*)",
       "Bash(find:*)",
-      "Bash(conda activate:*)"
+      "Bash(conda activate:*)",
+      "Bash(ls:*)",
+      "Bash(sqlite3:*)",
+      "Bash(env)",
+      "Bash(docker exec:*)",
+      "Bash(docker logs:*)"
     ],
     "deny": []
   }

@@ -368,7 +368,7 @@ class Booking(models.Model):
         help_text="Guest mobile number"
     )
     car_rego = models.CharField(
-        max_length=20,
+        max_length=100,
         blank=True,
         help_text="Car registration"
     )

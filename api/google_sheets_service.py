@@ -2,7 +2,7 @@
 Google Sheets API service for reading booking data.
 """
 import re
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional, Tuple, Any
 from dateutil.parser import parse as parse_date
@@ -103,14 +103,24 @@ class GoogleSheetsService:
         """
         Normalize and clean cell values based on field type.
         """
+        # Define CharField fields that should return empty string instead of None
+        char_fields = {
+            'status', 'file_as', 'first_name', 'surname', 'company', 
+            'region', 'portal', 'room_number', 'room_type', 'agent', 
+            'agent_ref', 'email', 'mobile', 'car_rego', 'guest_request',
+            'enquiry_status', 'primary_source', 'rate', 'suburb', 
+            'post_code', 'state', 'room_status', 'dual_key'
+        }
+        
         if value is None or value == '':
-            return None
+            return '' if field_name in char_fields else None
             
-        # Convert to string first
+        # Convert to string first and handle non-breaking spaces
         str_value = str(value).strip()
         
-        if not str_value:
-            return None
+        # Handle non-breaking space and other whitespace characters
+        if not str_value or str_value == '\u00a0' or str_value == ' ':
+            return '' if field_name in char_fields else None
             
         # Date fields
         if field_name in ['arrive_date', 'depart_date', 'deposit_by_date', 'booking_date']:
@@ -137,22 +147,34 @@ class GoogleSheetsService:
         # Standard string cleaning
         return str_value
     
-    def parse_date(self, value: str) -> Optional[date]:
-        """Parse date string to date object."""
+    def parse_date(self, value: Any) -> Optional[date]:
+        """Parse date string or Excel serial number to date object."""
         if not value or value == '#ERROR!':
             return None
             
         try:
+            # Handle Excel serial date numbers (e.g., 45726 = Sep 19, 2025)
+            if isinstance(value, (int, float)) and value > 10000:
+                # Excel epoch starts on Jan 1, 1900, but has a leap year bug
+                # So we use Jan 1, 1900 as day 1 and adjust
+                excel_epoch = date(1900, 1, 1)
+                # Excel incorrectly treats 1900 as a leap year, so subtract 2 days
+                delta_days = int(value) - 2
+                return excel_epoch + timedelta(days=delta_days)
+            
+            # Convert to string for text parsing
+            value_str = str(value).strip()
+            
             # Handle DD/MM/YYYY format (Australian)
-            if '/' in value:
-                parts = value.split('/')
+            if '/' in value_str:
+                parts = value_str.split('/')
                 if len(parts) == 3:
                     # Assume DD/MM/YYYY
                     day, month, year = parts
                     return date(int(year), int(month), int(day))
             
             # Use dateutil parser for other formats
-            parsed = parse_date(value, dayfirst=True)
+            parsed = parse_date(value_str, dayfirst=True)
             return parsed.date() if parsed else None
             
         except (ValueError, TypeError):

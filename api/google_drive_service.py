@@ -106,3 +106,33 @@ class GoogleDriveService:
             'interval': '300',  # 5 minutes in seconds
             'webhook_url': webhook_url
         }
+    
+    def get_file_metadata(self, file_id: str) -> dict:
+        """Get metadata for a specific file by ID."""
+        try:
+            service = self.authenticate()
+            metadata = service.files().get(
+                fileId=file_id,
+                fields='id,name,mimeType,size,createdTime,modifiedTime,parents'
+            ).execute()
+            return metadata
+        except Exception as e:
+            print(f"Error getting file metadata: {e}")
+            return None
+    
+    def list_files_in_folder(self, folder_id: str) -> list:
+        """List all files in a specific Google Drive folder."""
+        try:
+            service = self.authenticate()
+            results = service.files().list(
+                q=f"'{folder_id}' in parents and trashed=false",
+                fields='files(id,name,mimeType,size,createdTime,modifiedTime,parents)',
+                pageSize=100
+            ).execute()
+            
+            files = results.get('files', [])
+            return files
+            
+        except Exception as e:
+            print(f"Error listing files in folder {folder_id}: {e}")
+            return []
