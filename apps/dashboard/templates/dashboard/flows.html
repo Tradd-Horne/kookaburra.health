@@ -505,6 +505,31 @@
 .folder-url-link:hover {
     text-decoration: underline;
 }
+
+/* Watch actions */
+.watch-actions {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e1e5e9;
+}
+
+.btn-view-data {
+    background-color: #17a2b8;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+    transition: background-color 0.2s ease;
+}
+
+.btn-view-data:hover {
+    background-color: #138496;
+    color: white;
+    text-decoration: none;
+}
 </style>
 
 <script>
@@ -588,6 +613,9 @@ async function loadWatchConfigurations() {
                             <div><strong>Last Validated:</strong> ${watch.last_validated}</div>
                             <div class="${expirationWarning}"><strong>Expires:</strong> ${watch.expiration_date} (${watch.days_until_expiration} days)</div>
                             <div><strong>Created:</strong> ${watch.created_date}</div>
+                        </div>
+                        <div class="watch-actions">
+                            <a href="/dashboard/flows/watched-folders/${watch.folder_name}/" class="btn btn-view-data">View Data</a>
                         </div>
                     </div>
                 `;
