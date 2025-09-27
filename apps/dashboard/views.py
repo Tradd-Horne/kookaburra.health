@@ -10,8 +10,10 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponse, Http404
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
+from django.db.models import Q, Count
+from django.utils import timezone as django_timezone
 
 from api.models import GoogleDriveFolder, Booking, IngestionRun
 
@@ -239,3 +241,125 @@ def export_bookings_csv(request, folder):
         ])
     
     return response
+
+
+@login_required
+def guest_extra_night_workflow(request):
+    """Guest Extra Night Workflow Management Page."""
+    
+    # Try to get the connected database from the request parameter or default to SALT-DATA
+    connected_folder_name = request.GET.get('database', 'SALT-DATA')
+    
+    try:
+        # First, try to find the folder for the current user
+        connected_folder = GoogleDriveFolder.objects.filter(
+            folder_name=connected_folder_name,
+            user=request.user,
+            is_active=True
+        ).first()
+        
+        if not connected_folder:
+            # If not found for current user, try to find any folder with that name
+            # (for demo purposes, in production you'd handle permissions differently)
+            connected_folder = GoogleDriveFolder.objects.filter(
+                folder_name=connected_folder_name,
+                is_active=True
+            ).first()
+            
+            if not connected_folder:
+                # Try to find any available folder for this user
+                available_folders = GoogleDriveFolder.objects.filter(
+                    user=request.user,
+                    is_active=True
+                )
+                
+                if available_folders.exists():
+                    connected_folder = available_folders.first()
+                else:
+                    return render(request, 'dashboard/guest_extra_night_workflow.html', {
+                        'error': 'No database available. Please set up a Google Drive folder watch first in the Flows section.'
+                    })
+    except Exception as e:
+        return render(request, 'dashboard/guest_extra_night_workflow.html', {
+            'error': f'Database connection error: {str(e)}'
+        })
+    
+    # Get current date for calculations
+    today = django_timezone.now().date()
+    
+    # Step 1: Identify eligible guests (Friday check-in, Sunday check-out, weekend stays)
+    # Django week_day: 1=Sunday, 2=Monday, 3=Tuesday, 4=Wednesday, 5=Thursday, 6=Friday, 7=Saturday
+    # Look for bookings that check in on Friday and check out on Sunday
+    eligible_guests = Booking.objects.filter(
+        ingestion_run__folder=connected_folder,
+        arrive_date__isnull=False,
+        depart_date__isnull=False,
+        arrive_date__week_day=6,  # Friday (Django: 1=Sunday, 6=Friday)
+        depart_date__week_day=1,  # Sunday (Django: 1=Sunday)
+        arrive_date__gte=today,   # Future bookings only
+        status__in=['Booking', 'Confirmed']  # Active bookings
+    ).order_by('arrive_date')[:20]  # Limit to next 20 for demo
+    
+    # Calculate workflow flags for each guest
+    workflow_guests = []
+    for booking in eligible_guests:
+        # Calculate days until check-in
+        days_until_checkin = (booking.arrive_date - today).days
+        
+        # Determine workflow flags
+        t14_eligible = days_until_checkin == 14  # Exactly 14 days before
+        t1_eligible = days_until_checkin == 1    # Exactly 1 day before
+        in_window = 1 <= days_until_checkin <= 14  # In the window for offers
+        
+        # Mock workflow status (in real implementation, this would be stored in database)
+        workflow_status = 'pending'  # pending, t14_sent, t1_sent, accepted, declined, completed
+        offer_type = None  # extra_night, late_checkout
+        
+        # Determine next action
+        if days_until_checkin > 14:
+            next_action = f"Monitor (T-14 in {days_until_checkin - 14} days)"
+        elif t14_eligible:
+            next_action = "Send T-14 SMS Offer"
+        elif t1_eligible:
+            next_action = "Send T-1 SMS Reminder"
+        elif days_until_checkin == 0:
+            next_action = "Guest checking in today"
+        elif days_until_checkin < 0:
+            next_action = "Guest checked in"
+        else:
+            next_action = f"Monitor (T-1 in {days_until_checkin - 1} days)"
+        
+        workflow_guests.append({
+            'booking': booking,
+            'days_until_checkin': days_until_checkin,
+            't14_eligible': t14_eligible,
+            't1_eligible': t1_eligible,
+            'in_window': in_window,
+            'workflow_status': workflow_status,
+            'offer_type': offer_type,
+            'next_action': next_action
+        })
+    
+    # Get summary statistics
+    total_eligible = len(workflow_guests)
+    pending_t14 = len([g for g in workflow_guests if g['t14_eligible']])
+    pending_t1 = len([g for g in workflow_guests if g['t1_eligible']])
+    in_monitoring = len([g for g in workflow_guests if g['in_window'] and not g['t14_eligible'] and not g['t1_eligible']])
+    
+    # Queensland timezone for display
+    qld_tz = pytz.timezone('Australia/Brisbane')
+    
+    context = {
+        'connected_folder': connected_folder,
+        'workflow_guests': workflow_guests,
+        'today': today,
+        'summary': {
+            'total_eligible': total_eligible,
+            'pending_t14': pending_t14,
+            'pending_t1': pending_t1,
+            'in_monitoring': in_monitoring,
+        },
+        'qld_tz': qld_tz,
+    }
+    
+    return render(request, 'dashboard/guest_extra_night_workflow.html', context)

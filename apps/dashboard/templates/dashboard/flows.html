@@ -98,7 +98,7 @@
                         </div>
                         <div class="workflow-actions">
                             <button class="btn btn-connect" onclick="openConnectDatabaseModal()" style="margin-top: 0.5rem;">Connect to Database</button>
-                            <button class="btn" style="margin-top: 0.5rem; margin-left: 0.5rem;">Open Workflow</button>
+                            <a href="#" onclick="openWorkflow()" class="btn" style="margin-top: 0.5rem; margin-left: 0.5rem; text-decoration: none;">Open Workflow</a>
                         </div>
                     </div>
                 </div>
@@ -1116,6 +1116,26 @@ function loadWorkflowConnectionStatus() {
         }
     } catch (error) {
         console.error('Failed to load connection status:', error);
+    }
+}
+
+// Open Workflow function
+function openWorkflow() {
+    try {
+        // Get the connected database from localStorage
+        const connection = JSON.parse(localStorage.getItem('workflow_database_connection'));
+        
+        if (connection && connection.database) {
+            // Open workflow page with the connected database parameter
+            window.location.href = `/dashboard/workflows/guest-extra-night/?database=${encodeURIComponent(connection.database)}`;
+        } else {
+            // No connection found, open with default or show message
+            alert('Please connect to a database first using the "Connect to Database" button.');
+        }
+    } catch (error) {
+        console.error('Error opening workflow:', error);
+        // Fallback: open without database parameter
+        window.location.href = '/dashboard/workflows/guest-extra-night/';
     }
 }
 

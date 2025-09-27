@@ -1,0 +1,763 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Guest Extra Night Workflow - Dashboard{% endblock %}
+{% block page_title %}📋 Guest Extra Night Workflow{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<div class="breadcrumb-nav">
+    <a href="{% url 'dashboard:home' %}">Dashboard</a> 
+    <span>&gt;</span> 
+    <a href="{% url 'dashboard:flows' %}">Flows</a> 
+    <span>&gt;</span> 
+    <span>Workflows</span> 
+    <span>&gt;</span> 
+    <span class="current">Guest Extra Night</span>
+</div>
+
+{% if error %}
+<div class="content-card">
+    <div class="error-state">
+        <h3>Database Connection Required</h3>
+        <p>{{ error }}</p>
+        <a href="{% url 'dashboard:flows' %}" class="btn">Go to Flows</a>
+    </div>
+</div>
+{% else %}
+
+<!-- Workflow Header -->
+<div class="content-card">
+    <div class="workflow-header">
+        <div class="workflow-info">
+            <h2>🌴 Guest Extra Night Workflow</h2>
+            <p class="workflow-description">
+                <strong>Goal:</strong> Guests stay extra night Sunday or late checkout.<br>
+                <strong>Database:</strong> {{ connected_folder.folder_name }} ({{ summary.total_eligible }} eligible guests)
+            </p>
+        </div>
+        <div class="workflow-actions">
+            <a href="{% url 'dashboard:flows' %}" class="btn btn-secondary">← Back to Flows</a>
+            <button class="btn btn-refresh" onclick="location.reload()">🔄 Refresh Data</button>
+        </div>
+    </div>
+
+    <!-- Workflow Summary -->
+    <div class="workflow-summary">
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="card-number">{{ summary.total_eligible }}</div>
+                <div class="card-label">Total Eligible Guests</div>
+                <div class="card-subtitle">Friday-Sunday bookings</div>
+            </div>
+            <div class="summary-card pending">
+                <div class="card-number">{{ summary.pending_t14 }}</div>
+                <div class="card-label">T-14 Actions</div>
+                <div class="card-subtitle">Ready for SMS offers</div>
+            </div>
+            <div class="summary-card urgent">
+                <div class="card-number">{{ summary.pending_t1 }}</div>
+                <div class="card-label">T-1 Actions</div>
+                <div class="card-subtitle">Final reminders</div>
+            </div>
+            <div class="summary-card monitoring">
+                <div class="card-number">{{ summary.in_monitoring }}</div>
+                <div class="card-label">Monitoring</div>
+                <div class="card-subtitle">In workflow window</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow Steps -->
+<div class="content-card">
+    <div class="workflow-steps">
+        <h3>📋 Workflow Process</h3>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Guest Identification</h4>
+                    <p>Weekend stays (Fri check-in, Sun check-out)</p>
+                    <p>Room not booked for Sunday night</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Timing Flags</h4>
+                    <p>T-14 days: System flags eligible guests</p>
+                    <p>T-1 day: Re-offer if not accepted</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>SMS Offers</h4>
+                    <p>$150 Sunday night stay</p>
+                    <p>$75 late checkout (3pm)</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Guest Response</h4>
+                    <p>Reply 1: Extra night</p>
+                    <p>Reply 2: Late checkout</p>
+                    <p>STOP: Opt-out permanently</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h4>Payment Pathway</h4>
+                    <p>Confirmation SMS sent</p>
+                    <p>Reception contacted to finalize</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <h4>Reception Finalization</h4>
+                    <p>Booking flagged for staff</p>
+                    <p>Payment collected at check-in</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Guest Management Table -->
+<div class="content-card">
+    <h3>🎯 Guest Management</h3>
+    
+    {% if workflow_guests %}
+    <div class="table-container">
+        <table class="workflow-table">
+            <thead>
+                <tr>
+                    <th>Guest</th>
+                    <th>Booking #</th>
+                    <th>Check-in</th>
+                    <th>Check-out</th>
+                    <th>Days Until</th>
+                    <th>Workflow Status</th>
+                    <th>Next Action</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for guest in workflow_guests %}
+                <tr class="guest-row {% if guest.t14_eligible %}t14-eligible{% elif guest.t1_eligible %}t1-eligible{% elif guest.in_window %}in-window{% endif %}">
+                    <td>
+                        <div class="guest-info">
+                            <strong>{{ guest.booking.first_name }} {{ guest.booking.surname }}</strong>
+                            <div class="guest-details">
+                                {% if guest.booking.mobile %}📱 {{ guest.booking.mobile }}{% endif %}
+                                {% if guest.booking.email %}<br>📧 {{ guest.booking.email }}{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td><strong>{{ guest.booking.booking_number }}</strong></td>
+                    <td>
+                        <div class="date-info">
+                            {{ guest.booking.arrive_date|date:"D d-m-Y" }}
+                            <div class="room-info">{{ guest.booking.room_number|default:"-" }}</div>
+                        </div>
+                    </td>
+                    <td>{{ guest.booking.depart_date|date:"D d-m-Y" }}</td>
+                    <td>
+                        <div class="days-until">
+                            {% if guest.days_until_checkin < 0 %}
+                                <span class="checked-in">Checked In</span>
+                            {% elif guest.days_until_checkin == 0 %}
+                                <span class="today">Today</span>
+                            {% else %}
+                                {{ guest.days_until_checkin }} day{{ guest.days_until_checkin|pluralize }}
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ guest.workflow_status }}">
+                            {% if guest.workflow_status == 'pending' %}Pending
+                            {% elif guest.workflow_status == 't14_sent' %}T-14 Sent
+                            {% elif guest.workflow_status == 't1_sent' %}T-1 Sent
+                            {% elif guest.workflow_status == 'accepted' %}Accepted
+                            {% elif guest.workflow_status == 'declined' %}Declined
+                            {% elif guest.workflow_status == 'completed' %}Completed
+                            {% else %}{{ guest.workflow_status|title }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td class="next-action">{{ guest.next_action }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            {% if guest.t14_eligible %}
+                                <button class="btn btn-sms" onclick="sendSMSOffer('{{ guest.booking.id }}', 't14')">
+                                    📱 Send T-14 SMS
+                                </button>
+                            {% elif guest.t1_eligible %}
+                                <button class="btn btn-sms" onclick="sendSMSOffer('{{ guest.booking.id }}', 't1')">
+                                    📱 Send T-1 SMS
+                                </button>
+                            {% else %}
+                                <button class="btn btn-view" onclick="viewGuestDetails('{{ guest.booking.id }}')">
+                                    👁️ View Details
+                                </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="no-guests">
+        <div class="no-guests-content">
+            <h4>🎉 No Eligible Guests Found</h4>
+            <p>Currently no guests with Friday-Sunday bookings in the workflow window.</p>
+            <p>Eligible guests will appear here 14 days before their check-in date.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- SMS Offer Modal -->
+<div id="smsOfferModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>📱 Send SMS Offer</h3>
+            <span class="close" onclick="closeSMSModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="sms-guest-info" class="guest-summary"></div>
+            
+            <div class="sms-template">
+                <h4>SMS Message Preview</h4>
+                <div class="sms-preview">
+                    "Hi from SALT Yeppoon 🌊. Special offer just for you — extend your stay to Sunday night for $150 or enjoy a late checkout at 3 pm for $75. Interested? Reply 1 for an extra night, 2 for a late checkout, or STOP to opt out."
+                </div>
+                <div class="sms-details">
+                    <p><strong>Character Count:</strong> 247 characters</p>
+                    <p><strong>Cost:</strong> ~$0.08 AUD per SMS</p>
+                </div>
+            </div>
+            
+            <div class="sms-options">
+                <h4>Response Options</h4>
+                <div class="response-grid">
+                    <div class="response-option">
+                        <strong>Reply "1"</strong><br>
+                        Sunday night extension ($150)
+                    </div>
+                    <div class="response-option">
+                        <strong>Reply "2"</strong><br>
+                        Late checkout 3pm ($75)
+                    </div>
+                    <div class="response-option">
+                        <strong>Reply "STOP"</strong><br>
+                        Opt-out permanently
+                    </div>
+                    <div class="response-option">
+                        <strong>No Reply</strong><br>
+                        Retry at T-1 day
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeSMSModal()">Cancel</button>
+            <button class="btn btn-sms-send" onclick="confirmSendSMS()">📱 Send SMS Now</button>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<style>
+/* Breadcrumb Navigation */
+.breadcrumb-nav {
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.breadcrumb-nav a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.breadcrumb-nav a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-nav .current {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Workflow Header */
+.workflow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.workflow-info h2 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+}
+
+.workflow-description {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+.workflow-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-refresh {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-refresh:hover {
+    background-color: #5a6268;
+}
+
+/* Summary Cards */
+.workflow-summary {
+    margin-bottom: 2rem;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.summary-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+}
+
+.summary-card.pending {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.summary-card.urgent {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.summary-card.monitoring {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.card-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.card-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.card-subtitle {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Workflow Steps */
+.workflow-steps {
+    margin-bottom: 2rem;
+}
+
+.workflow-steps h3 {
+    margin: 0 0 1.5rem 0;
+    color: #2c3e50;
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.step-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+}
+
+.step-number {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    background-color: #0066cc;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.step-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.step-content p {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.85rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Guest Table */
+.workflow-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.workflow-table th {
+    background-color: #f8f9fa;
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e1e5e9;
+    color: #333;
+}
+
+.workflow-table td {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+}
+
+.guest-row.t14-eligible {
+    background-color: #fff3cd;
+}
+
+.guest-row.t1-eligible {
+    background-color: #f8d7da;
+}
+
+.guest-row.in-window {
+    background-color: #d1ecf1;
+}
+
+.guest-info strong {
+    color: #2c3e50;
+}
+
+.guest-details {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+    line-height: 1.3;
+}
+
+.date-info {
+    font-weight: 600;
+}
+
+.room-info {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: normal;
+}
+
+.days-until .checked-in {
+    color: #666;
+    font-style: italic;
+}
+
+.days-until .today {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.next-action {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending { background-color: #e9ecef; color: #495057; }
+.status-t14_sent { background-color: #fff3cd; color: #856404; }
+.status-t1_sent { background-color: #f8d7da; color: #721c24; }
+.status-accepted { background-color: #d4edda; color: #155724; }
+.status-declined { background-color: #f8d7da; color: #721c24; }
+.status-completed { background-color: #d4edda; color: #155724; }
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.btn-sms {
+    background-color: #28a745;
+    color: white;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-sms:hover {
+    background-color: #218838;
+}
+
+.btn-view {
+    background-color: #6c757d;
+    color: white;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-view:hover {
+    background-color: #5a6268;
+}
+
+/* No Guests State */
+.no-guests {
+    text-align: center;
+    padding: 3rem;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e1e5e9;
+}
+
+.no-guests-content h4 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+}
+
+.no-guests-content p {
+    margin: 0 0 0.5rem 0;
+    color: #666;
+}
+
+/* SMS Modal Styles */
+.guest-summary {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e1e5e9;
+}
+
+.sms-template {
+    margin-bottom: 1.5rem;
+}
+
+.sms-template h4 {
+    margin: 0 0 0.75rem 0;
+    color: #2c3e50;
+}
+
+.sms-preview {
+    background-color: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 6px;
+    padding: 1rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #1565c0;
+    margin-bottom: 0.75rem;
+}
+
+.sms-details {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.sms-details p {
+    margin: 0 0 0.25rem 0;
+}
+
+.sms-options h4 {
+    margin: 0 0 0.75rem 0;
+    color: #2c3e50;
+}
+
+.response-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.response-option {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 4px;
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.btn-sms-send {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-sms-send:hover {
+    background-color: #218838;
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: 3rem;
+}
+
+.error-state h3 {
+    margin: 0 0 1rem 0;
+    color: #e74c3c;
+}
+
+.error-state p {
+    margin: 0 0 1.5rem 0;
+    color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .workflow-header {
+        flex-direction: column;
+        align-items: start;
+        gap: 1rem;
+    }
+    
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .steps-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .workflow-table {
+        font-size: 0.75rem;
+    }
+    
+    .response-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+let currentBookingId = null;
+let currentSMSType = null;
+
+function sendSMSOffer(bookingId, smsType) {
+    currentBookingId = bookingId;
+    currentSMSType = smsType;
+    
+    // Get guest info from the table row
+    const row = document.querySelector(`button[onclick="sendSMSOffer('${bookingId}', '${smsType}')"]`).closest('tr');
+    const guestName = row.querySelector('.guest-info strong').textContent;
+    const bookingNumber = row.querySelector('td:nth-child(2) strong').textContent;
+    const checkInDate = row.querySelector('.date-info').firstChild.textContent.trim();
+    
+    // Update modal with guest info
+    const guestSummary = document.getElementById('sms-guest-info');
+    guestSummary.innerHTML = `
+        <h4>Guest Information</h4>
+        <p><strong>Name:</strong> ${guestName}</p>
+        <p><strong>Booking:</strong> ${bookingNumber}</p>
+        <p><strong>Check-in:</strong> ${checkInDate}</p>
+        <p><strong>SMS Type:</strong> ${smsType === 't14' ? 'T-14 Initial Offer' : 'T-1 Reminder'}</p>
+    `;
+    
+    // Show modal
+    document.getElementById('smsOfferModal').style.display = 'flex';
+}
+
+function closeSMSModal() {
+    document.getElementById('smsOfferModal').style.display = 'none';
+    currentBookingId = null;
+    currentSMSType = null;
+}
+
+function confirmSendSMS() {
+    if (!currentBookingId || !currentSMSType) {
+        alert('Error: No booking selected');
+        return;
+    }
+    
+    // In a real implementation, this would make an API call to send the SMS
+    // For now, we'll simulate the process
+    
+    const confirmMessage = `SMS offer sent to guest!\n\nBooking: ${currentBookingId}\nType: ${currentSMSType}\n\nThe guest will receive the offer and can reply:\n• "1" for Sunday night ($150)\n• "2" for late checkout ($75)\n• "STOP" to opt out\n\nResponse tracking will be updated automatically.`;
+    
+    alert(confirmMessage);
+    
+    // Close modal and refresh page to show updated status
+    closeSMSModal();
+    
+    // In a real implementation, you might update the row status without full page reload
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+
+function viewGuestDetails(bookingId) {
+    // In a real implementation, this would open a detailed guest view
+    alert(`Opening detailed view for booking ${bookingId}\n\nThis would show:\n• Full booking details\n• SMS history\n• Response tracking\n• Payment status\n• Reception notes`);
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('smsOfferModal');
+    if (event.target === modal) {
+        closeSMSModal();
+    }
+});
+</script>
+{% endblock %}
