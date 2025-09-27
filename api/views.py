@@ -548,3 +548,171 @@ def list_google_drive_watches(request):
             {"error": f"Failed to fetch watch configurations: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@extend_schema(
+    summary="Import Booking Data",
+    description="Manually trigger import of booking data from Google Sheets in watched folders",
+    request={
+        "application/json": {
+            "type": "object",
+            "properties": {
+                "folder_id": {
+                    "type": "string",
+                    "description": "Specific folder ID to process (optional - if not provided, processes all watched folders)",
+                    "example": "1ZUp72GiB8CTz187XV_4nL3OzMYq-InPK"
+                }
+            }
+        }
+    },
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "example": "success"},
+                "message": {"type": "string", "example": "Import completed successfully"},
+                "summary": {
+                    "type": "object",
+                    "properties": {
+                        "folders_processed": {"type": "integer"},
+                        "files_discovered": {"type": "integer"},
+                        "files_processed": {"type": "integer"},
+                        "bookings_inserted": {"type": "integer"},
+                        "bookings_updated": {"type": "integer"},
+                        "conflicts_detected": {"type": "integer"},
+                        "rows_quarantined": {"type": "integer"}
+                    }
+                },
+                "results": {"type": "array", "items": {"type": "object"}}
+            }
+        },
+        400: {
+            "type": "object",
+            "properties": {
+                "error": {"type": "string"}
+            }
+        },
+        404: {
+            "type": "object",
+            "properties": {
+                "error": {"type": "string", "example": "Folder not found"}
+            }
+        },
+        401: {
+            "type": "object",
+            "properties": {
+                "detail": {"type": "string"}
+            }
+        }
+    },
+    tags=["Google Sheets"]
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def import_booking_data(request):
+    """
+    Import booking data from Google Sheets in watched folders.
+    
+    Triggers the complete discovery → extraction → merge → dedupe pipeline
+    for hotel booking data from Google Sheets files.
+    
+    This implements your step-by-step process:
+    1. Discover new Google Sheets files in watched folders
+    2. Extract booking data with field mapping and validation
+    3. Merge with existing data using latest-wins for mutable attributes
+    4. Deduplicate based on booking number (natural key)
+    5. Store in PostgreSQL with full audit trail
+    
+    Requires authentication.
+    """
+    try:
+        from .booking_ingestion_service import BookingIngestionService
+        
+        folder_id = request.data.get('folder_id')
+        
+        # Get folders to process
+        if folder_id:
+            # Process specific folder
+            try:
+                folders = [GoogleDriveFolder.objects.get(
+                    folder_id=folder_id,
+                    user=request.user,
+                    is_active=True
+                )]
+            except GoogleDriveFolder.DoesNotExist:
+                return Response(
+                    {"error": "Folder not found or not accessible"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            # Process all user's watched folders
+            folders = GoogleDriveFolder.objects.filter(
+                user=request.user,
+                is_active=True
+            )
+        
+        if not folders:
+            return Response(
+                {"error": "No watched folders found"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Initialize ingestion service
+        ingestion_service = BookingIngestionService()
+        
+        # Process each folder
+        results = []
+        summary = {
+            'folders_processed': 0,
+            'files_discovered': 0,
+            'files_processed': 0,
+            'files_failed': 0,
+            'bookings_inserted': 0,
+            'bookings_updated': 0,
+            'bookings_ignored': 0,
+            'conflicts_detected': 0,
+            'rows_quarantined': 0
+        }
+        
+        for folder in folders:
+            print(f"Processing folder: {folder.folder_name}")
+            folder_result = ingestion_service.process_folder(folder)
+            results.append(folder_result)
+            
+            # Aggregate summary
+            summary['folders_processed'] += 1
+            summary['files_discovered'] += folder_result.get('files_discovered', 0)
+            summary['files_processed'] += folder_result.get('files_processed', 0)
+            summary['files_failed'] += folder_result.get('files_failed', 0)
+            summary['bookings_inserted'] += folder_result.get('total_bookings_inserted', 0)
+            summary['bookings_updated'] += folder_result.get('total_bookings_updated', 0)
+            summary['bookings_ignored'] += folder_result.get('total_bookings_ignored', 0)
+            summary['conflicts_detected'] += folder_result.get('total_conflicts', 0)
+            summary['rows_quarantined'] += folder_result.get('total_quarantined', 0)
+        
+        # Generate summary message
+        if summary['files_processed'] == 0:
+            message = "No new files found to process"
+        else:
+            message = f"Processed {summary['files_processed']} files: " \
+                     f"{summary['bookings_inserted']} new bookings, " \
+                     f"{summary['bookings_updated']} updated"
+            
+            if summary['conflicts_detected'] > 0:
+                message += f", {summary['conflicts_detected']} conflicts detected"
+                
+            if summary['rows_quarantined'] > 0:
+                message += f", {summary['rows_quarantined']} rows quarantined"
+        
+        return Response({
+            "status": "success",
+            "message": message,
+            "summary": summary,
+            "results": results
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {"error": f"Import failed: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

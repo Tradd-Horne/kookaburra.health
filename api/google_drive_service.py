@@ -9,7 +9,10 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 # Scopes for Service Account
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+SCOPES = [
+    'https://www.googleapis.com/auth/drive.readonly',
+    'https://www.googleapis.com/auth/spreadsheets.readonly'
+]
 
 
 class GoogleDriveService:

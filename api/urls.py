@@ -24,6 +24,9 @@ urlpatterns = [
     path('google-drive/setup-watch/', views.setup_google_drive_watch, name='setup_google_drive_watch'),
     path('google-drive/list-watches/', views.list_google_drive_watches, name='list_google_drive_watches'),
     
+    # Google Sheets endpoints
+    path('google-sheets/import-bookings/', views.import_booking_data, name='import_booking_data'),
+    
     # Google OAuth endpoints
     path('google-auth/start/', google_auth_views.start_google_auth, name='start_google_auth'),
     path('google-auth/callback/', google_auth_views.google_auth_callback, name='google_auth_callback'),

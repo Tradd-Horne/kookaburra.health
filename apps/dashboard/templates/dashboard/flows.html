@@ -77,6 +77,7 @@
                         </div>
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e1e5e9;">
                             <button class="btn" style="margin-top: 0.5rem;" onclick="openConfigureWatchModal()">Add New Watch</button>
+                            <button class="btn btn-import" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="importBookingData()">Import Bookings</button>
                             <button class="btn btn-secondary" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="openHowToGuideModal()">How to Guide</button>
                             <button class="btn btn-secondary" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="authenticateGoogle()">Authenticate Google</button>
                         </div>
@@ -426,6 +427,20 @@ google-auth-oauthlib==1.1.0</code></pre>
 
 .btn-secondary:hover {
     background-color: #5a6268;
+}
+
+.btn-import {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-import:hover {
+    background-color: #218838;
+}
+
+.btn-import:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }
 
 /* How to Guide Modal Styles */
@@ -872,6 +887,67 @@ async function authenticateGoogle() {
     } catch (error) {
         console.error('Authentication error:', error);
         alert('Authentication failed. Please try again.');
+    }
+}
+
+// Import Booking Data
+async function importBookingData() {
+    const importBtn = document.querySelector('.btn-import');
+    
+    if (!confirm('Import booking data from Google Sheets in all watched folders? This will merge with existing data.')) {
+        return;
+    }
+    
+    try {
+        // Disable button and show loading state
+        importBtn.disabled = true;
+        importBtn.textContent = 'Importing...';
+        
+        const response = await fetch('/api/google-sheets/import-bookings/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({})
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            const summary = data.summary;
+            let message = `Import completed successfully!\n\n`;
+            message += `📁 Folders processed: ${summary.folders_processed}\n`;
+            message += `📄 Files discovered: ${summary.files_discovered}\n`;
+            message += `✅ Files processed: ${summary.files_processed}\n`;
+            message += `➕ New bookings: ${summary.bookings_inserted}\n`;
+            message += `📝 Updated bookings: ${summary.bookings_updated}\n`;
+            message += `⏭️ Ignored (older data): ${summary.bookings_ignored}\n`;
+            
+            if (summary.conflicts_detected > 0) {
+                message += `⚠️ Conflicts detected: ${summary.conflicts_detected}\n`;
+            }
+            
+            if (summary.rows_quarantined > 0) {
+                message += `🚨 Rows quarantined: ${summary.rows_quarantined}\n`;
+            }
+            
+            if (summary.files_failed > 0) {
+                message += `❌ Files failed: ${summary.files_failed}\n`;
+            }
+            
+            alert(message);
+        } else {
+            alert('Import failed: ' + (data.error || 'Unknown error'));
+        }
+        
+    } catch (error) {
+        console.error('Import error:', error);
+        alert('Network error during import. Please try again.');
+    } finally {
+        // Re-enable button
+        importBtn.disabled = false;
+        importBtn.textContent = 'Import Bookings';
     }
 }
 
