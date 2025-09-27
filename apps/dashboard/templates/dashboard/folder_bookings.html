@@ -125,6 +125,7 @@
                     <th>Arrive Date</th>
                     <th>Depart Date</th>
                     <th>Room</th>
+                    <th>Room Type</th>
                     <th>Status</th>
                     <th>Total</th>
                     <th>Import Date</th>
@@ -139,6 +140,7 @@
                     <td>{% if booking.arrive_date %}{{ booking.arrive_date|date:"d-m-Y" }}{% else %}-{% endif %}</td>
                     <td>{% if booking.depart_date %}{{ booking.depart_date|date:"d-m-Y" }}{% else %}-{% endif %}</td>
                     <td>{{ booking.room_number|default:"-" }}</td>
+                    <td>{{ booking.room_type|default:"-" }}</td>
                     <td><span class="status-badge status-{{ booking.status|lower }}">{{ booking.status }}</span></td>
                     <td>${{ booking.total_amount|default:"0" }}</td>
                     <td>
@@ -153,7 +155,7 @@
                 
                 <!-- Expandable details row -->
                 <tr id="details-{{ booking.id }}" class="booking-details" style="display: none;">
-                    <td colspan="9">
+                    <td colspan="10">
                         <div class="details-content">
                             <div class="details-grid">
                                 <div class="details-section">

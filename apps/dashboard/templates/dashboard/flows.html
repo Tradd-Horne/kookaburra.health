@@ -11,7 +11,7 @@
     <div class="finder-columns">
         <div class="finder-column">
             <div class="finder-column-header">Categories</div>
-            <div class="finder-item" data-category="google-drive">
+            <div class="finder-item active" data-category="google-drive">
                 <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
                     <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
                 </svg>
@@ -20,7 +20,7 @@
                     <path d="M2 2L6 4L2 6z" fill="#999"/>
                 </svg>
             </div>
-            <div class="finder-item active" data-category="workflows">
+            <div class="finder-item" data-category="workflows">
                 <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
                     <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
                 </svg>
@@ -32,10 +32,10 @@
         </div>
         
         <div class="finder-column">
-            <div class="finder-column-header" id="column2-header">Workflows</div>
+            <div class="finder-column-header" id="column2-header">Google Drive</div>
             
-            <!-- Google Drive Content (hidden by default) -->
-            <div id="google-drive-content" style="display: none;">
+            <!-- Google Drive Content (visible by default) -->
+            <div id="google-drive-content">
                 <div class="finder-item active">
                     <svg width="16" height="16" viewBox="0 0 16 16" class="file-icon">
                         <rect width="16" height="16" rx="2" fill="#4285f4"/>
@@ -49,8 +49,8 @@
                 </div>
             </div>
             
-            <!-- Workflows Content (visible by default) -->
-            <div id="workflows-content">
+            <!-- Workflows Content (hidden by default) -->
+            <div id="workflows-content" style="display: none;">
                 <div class="finder-item active">
                     <svg width="16" height="16" viewBox="0 0 16 16" class="file-icon">
                         <rect width="16" height="16" rx="2" fill="#f39c12"/>
@@ -65,10 +65,10 @@
         </div>
         
         <div class="finder-column">
-            <div class="finder-column-header" id="column3-header">SALT-Looong-weekend</div>
+            <div class="finder-column-header" id="column3-header">Watched Folders</div>
             
-            <!-- Google Drive Preview (hidden by default) -->
-            <div id="google-drive-preview" style="display: none;">
+            <!-- Google Drive Preview (visible by default) -->
+            <div id="google-drive-preview">
                 <div class="finder-preview">
                     <div class="finder-preview-info">
                         <h3>Watched Folders</h3>
@@ -88,8 +88,8 @@
                 </div>
             </div>
             
-            <!-- Workflows Preview (visible by default) -->
-            <div id="workflows-preview">
+            <!-- Workflows Preview (hidden by default) -->
+            <div id="workflows-preview" style="display: none;">
                 <div class="finder-preview">
                     <div class="finder-preview-info">
                         <h3>SALT Long Weekend Project</h3>
@@ -534,6 +534,10 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Load Google Drive data by default on page load
+    loadWatchConfigurations();
+    loadLastImportInfo();
+    
     const categoryItems = document.querySelectorAll('[data-category]');
     
     categoryItems.forEach(item => {
