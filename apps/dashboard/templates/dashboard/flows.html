@@ -81,6 +81,7 @@
                         </div>
                         <button class="btn" style="margin-top: 0.5rem;" onclick="openConfigureWatchModal()">Configure Watch</button>
                         <button class="btn btn-secondary" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="openHowToGuideModal()">How to Guide</button>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="authenticateGoogle()">Authenticate Google</button>
                     </div>
                 </div>
             </div>
@@ -638,7 +639,7 @@ async function saveFolderWatch() {
         
         const data = await response.json();
         
-        if (data.success) {
+        if (data.status === 'success') {
             alert('Folder watch configured successfully!');
             closeConfigureWatchModal();
             // Refresh the page or update the UI to show the new watch
@@ -658,6 +659,51 @@ function openHowToGuideModal() {
 
 function closeHowToGuideModal() {
     document.getElementById('howToGuideModal').style.display = 'none';
+}
+
+// Google Authentication
+async function authenticateGoogle() {
+    try {
+        // Check current auth status
+        const statusResponse = await fetch('/api/google-auth/status/');
+        const statusData = await statusResponse.json();
+        
+        if (statusData.authenticated) {
+            alert('Already authenticated with Google Drive!');
+            return;
+        }
+        
+        // Start OAuth flow in new window
+        const authWindow = window.open('/api/google-auth/start/', 'googleAuth', 'width=500,height=600');
+        
+        // Check if window was blocked
+        if (!authWindow) {
+            alert('Please allow popups for this site to authenticate with Google.');
+            return;
+        }
+        
+        // Poll for window closure (authentication completion)
+        const checkClosed = setInterval(() => {
+            if (authWindow.closed) {
+                clearInterval(checkClosed);
+                // Check auth status again
+                setTimeout(async () => {
+                    const newStatusResponse = await fetch('/api/google-auth/status/');
+                    const newStatusData = await newStatusResponse.json();
+                    
+                    if (newStatusData.authenticated) {
+                        alert('Google Drive authentication successful!');
+                    } else {
+                        alert('Authentication was cancelled or failed.');
+                    }
+                }, 1000);
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Authentication error:', error);
+        alert('Authentication failed. Please try again.');
+    }
 }
 
 // Close modal when clicking outside

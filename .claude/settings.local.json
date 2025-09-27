@@ -16,7 +16,9 @@
       "Bash(pkill:*)",
       "Bash(rm:*)",
       "Bash(mv:*)",
-      "Bash(docker-compose:*)"
+      "Bash(docker-compose:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python3:*)"
     ],
     "deny": []
   }

@@ -8,7 +8,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
-from . import views
+from . import views, google_auth_views
 
 app_name = 'api'
 
@@ -22,6 +22,11 @@ urlpatterns = [
     # Google Drive endpoints
     path('google-drive/validate-folder/', views.validate_google_drive_folder, name='validate_google_drive_folder'),
     path('google-drive/setup-watch/', views.setup_google_drive_watch, name='setup_google_drive_watch'),
+    
+    # Google OAuth endpoints
+    path('google-auth/start/', google_auth_views.start_google_auth, name='start_google_auth'),
+    path('google-auth/callback/', google_auth_views.google_auth_callback, name='google_auth_callback'),
+    path('google-auth/status/', google_auth_views.auth_status, name='auth_status'),
     
     # API documentation
     path('schema/', SpectacularAPIView.as_view(), name='schema'),

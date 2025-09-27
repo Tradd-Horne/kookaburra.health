@@ -4,47 +4,34 @@ Google Drive API service for folder operations.
 import os
 from typing import Dict, Optional
 
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import pickle
 
-# If modifying these scopes, delete the file token.pickle.
+# Scopes for Service Account
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
 
 class GoogleDriveService:
-    """Service for interacting with Google Drive API."""
+    """Service for interacting with Google Drive API using Service Account."""
     
-    def __init__(self, credentials_file='credentials.json', token_file='token.pickle'):
-        self.credentials_file = credentials_file
-        self.token_file = token_file
+    def __init__(self, service_account_file='service-account.json'):
+        self.service_account_file = service_account_file
         self.service = None
         
     def authenticate(self):
-        """Authenticate and create Google Drive service."""
-        creds = None
+        """Authenticate using Service Account and create Google Drive service."""
+        if not os.path.exists(self.service_account_file):
+            raise FileNotFoundError(f"Service account file {self.service_account_file} not found")
         
-        # Token file stores the user's access and refresh tokens
-        if os.path.exists(self.token_file):
-            with open(self.token_file, 'rb') as token:
-                creds = pickle.load(token)
-                
-        # If there are no (valid) credentials available, let the user log in
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_file, SCOPES)
-                creds = flow.run_local_server(port=0)
-            # Save the credentials for the next run
-            with open(self.token_file, 'wb') as token:
-                pickle.dump(creds, token)
-                
-        self.service = build('drive', 'v3', credentials=creds)
+        # Load service account credentials
+        credentials = service_account.Credentials.from_service_account_file(
+            self.service_account_file, 
+            scopes=SCOPES
+        )
+        
+        # Build the service
+        self.service = build('drive', 'v3', credentials=credentials)
         return self.service
         
     def validate_folder(self, folder_id: str) -> Optional[Dict]:
