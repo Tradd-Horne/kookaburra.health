@@ -43,26 +43,57 @@
 
     <!-- Workflow Summary -->
     <div class="workflow-summary">
-        <div class="summary-cards">
-            <div class="summary-card">
-                <div class="card-number">{{ summary.total_eligible }}</div>
-                <div class="card-label">Total Eligible Guests</div>
-                <div class="card-subtitle">Friday-Sunday bookings</div>
+        <div class="summary-lines">
+            <div class="summary-line expandable" onclick="toggleEligibleGuests()">
+                <span class="summary-label">Total Eligible Guests (Friday-Sunday bookings):</span>
+                <span class="summary-number">{{ summary.total_eligible }}</span>
+                <span class="expand-icon" id="expand-icon">▼</span>
             </div>
-            <div class="summary-card pending">
-                <div class="card-number">{{ summary.pending_t14 }}</div>
-                <div class="card-label">T-14 Actions</div>
-                <div class="card-subtitle">Ready for SMS offers</div>
+            <div class="eligible-guests-dropdown" id="eligible-guests-dropdown" style="display: none;">
+                {% if workflow_guests %}
+                    <div class="guests-table-container">
+                        <table class="guests-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Booking #</th>
+                                    <th>Check-in</th>
+                                    <th>Check-out</th>
+                                    <th>Room</th>
+                                    <th>Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for guest in workflow_guests %}
+                                <tr>
+                                    <td><strong>{{ guest.booking.first_name }} {{ guest.booking.surname }}</strong></td>
+                                    <td>{{ guest.booking.booking_number }}</td>
+                                    <td>{{ guest.booking.arrive_date|date:"D d-m-Y" }}</td>
+                                    <td>{{ guest.booking.depart_date|date:"D d-m-Y" }}</td>
+                                    <td>{{ guest.booking.room_number|default:"-" }} ({{ guest.booking.room_type|default:"Standard" }})</td>
+                                    <td>{{ guest.booking.rate|default:"Standard Rate" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="no-guests-message">
+                        No eligible guests found at this time.
+                    </div>
+                {% endif %}
             </div>
-            <div class="summary-card urgent">
-                <div class="card-number">{{ summary.pending_t1 }}</div>
-                <div class="card-label">T-1 Actions</div>
-                <div class="card-subtitle">Final reminders</div>
+            <div class="summary-line">
+                <span class="summary-label">T-14 Actions (Ready for SMS offers):</span>
+                <span class="summary-number pending">{{ summary.pending_t14 }}</span>
             </div>
-            <div class="summary-card monitoring">
-                <div class="card-number">{{ summary.in_monitoring }}</div>
-                <div class="card-label">Monitoring</div>
-                <div class="card-subtitle">In workflow window</div>
+            <div class="summary-line">
+                <span class="summary-label">T-1 Actions (Final reminders):</span>
+                <span class="summary-number urgent">{{ summary.pending_t1 }}</span>
+            </div>
+            <div class="summary-line">
+                <span class="summary-label">Monitoring (In workflow window):</span>
+                <span class="summary-number monitoring">{{ summary.in_monitoring }}</span>
             </div>
         </div>
     </div>
@@ -72,55 +103,36 @@
 <div class="content-card">
     <div class="workflow-steps">
         <h3>📋 Workflow Process</h3>
-        <div class="steps-grid">
-            <div class="step-card">
-                <div class="step-number">1</div>
-                <div class="step-content">
-                    <h4>Guest Identification</h4>
-                    <p>Weekend stays (Fri check-in, Sun check-out)</p>
-                    <p>Room not booked for Sunday night</p>
-                </div>
+        <div class="steps-lines">
+            <div class="step-line">
+                <span class="step-number">1</span>
+                <span class="step-label">Guest Identification:</span>
+                <span class="step-description">Weekend stays (Fri check-in, Sun check-out), Room not booked for Sunday night</span>
             </div>
-            <div class="step-card">
-                <div class="step-number">2</div>
-                <div class="step-content">
-                    <h4>Timing Flags</h4>
-                    <p>T-14 days: System flags eligible guests</p>
-                    <p>T-1 day: Re-offer if not accepted</p>
-                </div>
+            <div class="step-line">
+                <span class="step-number">2</span>
+                <span class="step-label">Timing Flags:</span>
+                <span class="step-description">T-14 days: System flags eligible guests, T-1 day: Re-offer if not accepted</span>
             </div>
-            <div class="step-card">
-                <div class="step-number">3</div>
-                <div class="step-content">
-                    <h4>SMS Offers</h4>
-                    <p>$150 Sunday night stay</p>
-                    <p>$75 late checkout (3pm)</p>
-                </div>
+            <div class="step-line">
+                <span class="step-number">3</span>
+                <span class="step-label">SMS Offers:</span>
+                <span class="step-description">$150 Sunday night stay, $75 late checkout (3pm)</span>
             </div>
-            <div class="step-card">
-                <div class="step-number">4</div>
-                <div class="step-content">
-                    <h4>Guest Response</h4>
-                    <p>Reply 1: Extra night</p>
-                    <p>Reply 2: Late checkout</p>
-                    <p>STOP: Opt-out permanently</p>
-                </div>
+            <div class="step-line">
+                <span class="step-number">4</span>
+                <span class="step-label">Guest Response:</span>
+                <span class="step-description">Reply 1: Extra night, Reply 2: Late checkout, STOP: Opt-out permanently</span>
             </div>
-            <div class="step-card">
-                <div class="step-number">5</div>
-                <div class="step-content">
-                    <h4>Payment Pathway</h4>
-                    <p>Confirmation SMS sent</p>
-                    <p>Reception contacted to finalize</p>
-                </div>
+            <div class="step-line">
+                <span class="step-number">5</span>
+                <span class="step-label">Payment Pathway:</span>
+                <span class="step-description">Confirmation SMS sent, Reception contacted to finalize</span>
             </div>
-            <div class="step-card">
-                <div class="step-number">6</div>
-                <div class="step-content">
-                    <h4>Reception Finalization</h4>
-                    <p>Booking flagged for staff</p>
-                    <p>Payment collected at check-in</p>
-                </div>
+            <div class="step-line">
+                <span class="step-number">6</span>
+                <span class="step-label">Reception Finalization:</span>
+                <span class="step-description">Booking flagged for staff, Payment collected at check-in</span>
             </div>
         </div>
     </div>
@@ -332,61 +344,155 @@
     background-color: #5a6268;
 }
 
-/* Summary Cards */
+/* Summary Lines */
 .workflow-summary {
     margin-bottom: 2rem;
 }
 
-.summary-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-}
-
-.summary-card {
+.summary-lines {
     background-color: #f8f9fa;
     border: 1px solid #e1e5e9;
-    border-radius: 8px;
-    padding: 1.5rem;
-    text-align: center;
-    transition: transform 0.2s ease;
+    border-radius: 6px;
+    padding: 1rem;
 }
 
-.summary-card:hover {
-    transform: translateY(-2px);
+.summary-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #e9ecef;
 }
 
-.summary-card.pending {
-    background-color: #fff3cd;
-    border-color: #ffeaa7;
+.summary-line:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
 }
 
-.summary-card.urgent {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
+.summary-line:first-child {
+    padding-top: 0;
 }
 
-.summary-card.monitoring {
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
+.summary-label {
+    font-weight: 500;
+    color: #333;
+    font-size: 0.85rem;
+    flex: 1;
 }
 
-.card-number {
-    font-size: 2rem;
+.summary-number {
+    font-size: 1.1rem;
     font-weight: bold;
     color: #2c3e50;
-    margin-bottom: 0.5rem;
+    min-width: 30px;
+    text-align: right;
 }
 
-.card-label {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.25rem;
+.summary-number.pending {
+    color: #856404;
 }
 
-.card-subtitle {
+.summary-number.urgent {
+    color: #721c24;
+}
+
+.summary-number.monitoring {
+    color: #0c5460;
+}
+
+/* Expandable Accordion */
+.summary-line.expandable {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.summary-line.expandable:hover {
+    background-color: #e9ecef;
+}
+
+.expand-icon {
     font-size: 0.8rem;
     color: #666;
+    transition: transform 0.3s ease;
+    margin-left: 0.5rem;
+}
+
+.expand-icon.rotated {
+    transform: rotate(180deg);
+}
+
+.eligible-guests-dropdown {
+    margin-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.guests-table-container {
+    overflow-x: auto;
+}
+
+.guests-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
+.guests-table th {
+    background-color: #f8f9fa;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #e9ecef;
+    font-size: 0.75rem;
+}
+
+.guests-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+    color: #666;
+    vertical-align: top;
+}
+
+.guests-table td:first-child {
+    color: #2c3e50;
+}
+
+.guests-table td strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.guests-table tr:last-child td {
+    border-bottom: none;
+}
+
+.guests-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.no-guests-message {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    font-size: 0.85rem;
+    padding: 1rem;
 }
 
 /* Workflow Steps */
@@ -399,26 +505,34 @@
     color: #2c3e50;
 }
 
-.steps-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-}
-
-.step-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem;
+.steps-lines {
     background-color: #f8f9fa;
     border: 1px solid #e1e5e9;
     border-radius: 6px;
+    padding: 1rem;
+}
+
+.step-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.step-line:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.step-line:first-child {
+    padding-top: 0;
 }
 
 .step-number {
     flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
+    width: 1.5rem;
+    height: 1.5rem;
     background-color: #0066cc;
     color: white;
     border-radius: 50%;
@@ -426,20 +540,23 @@
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 0.9rem;
+    font-size: 0.75rem;
+    margin-top: 0.1rem;
 }
 
-.step-content h4 {
-    margin: 0 0 0.5rem 0;
+.step-label {
+    font-weight: 600;
     color: #2c3e50;
-    font-size: 1rem;
+    font-size: 0.85rem;
+    min-width: 120px;
+    flex-shrink: 0;
 }
 
-.step-content p {
-    margin: 0 0 0.25rem 0;
-    font-size: 0.85rem;
+.step-description {
+    font-size: 0.8rem;
     color: #666;
     line-height: 1.4;
+    flex: 1;
 }
 
 /* Guest Table */
@@ -673,12 +790,32 @@
         gap: 1rem;
     }
     
-    .summary-cards {
-        grid-template-columns: repeat(2, 1fr);
+    .summary-line {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
     }
     
-    .steps-grid {
-        grid-template-columns: 1fr;
+    .summary-label {
+        min-width: auto;
+    }
+    
+    .step-line {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .step-label {
+        min-width: auto;
+    }
+    
+    .guests-table {
+        font-size: 0.7rem;
+    }
+    
+    .guests-table th,
+    .guests-table td {
+        padding: 0.4rem 0.5rem;
     }
     
     .workflow-table {
@@ -694,6 +831,21 @@
 <script>
 let currentBookingId = null;
 let currentSMSType = null;
+
+function toggleEligibleGuests() {
+    const dropdown = document.getElementById('eligible-guests-dropdown');
+    const icon = document.getElementById('expand-icon');
+    
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
+        icon.classList.add('rotated');
+        icon.textContent = '▲';
+    } else {
+        dropdown.style.display = 'none';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    }
+}
 
 function sendSMSOffer(bookingId, smsType) {
     currentBookingId = bookingId;
