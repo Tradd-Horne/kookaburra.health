@@ -93,16 +93,45 @@
                 <div class="finder-preview">
                     <div class="finder-preview-info">
                         <h3>SALT Long Weekend Project</h3>
-                        <div class="finder-preview-details">
-                            <div><strong>Size:</strong> 7.8 KB</div>
-                            <div><strong>Type:</strong> Workflow Document</div>
-                            <div><strong>Created:</strong> Today at 11:30 AM</div>
-                            <div><strong>Category:</strong> Workflows</div>
+                        <div id="workflow-connection-status" style="margin: 1rem 0; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px; font-size: 0.85rem;">
+                            <div class="connection-info">Loading connection status...</div>
                         </div>
-                        <button class="btn" style="margin-top: 0.5rem;">Open Workflow</button>
+                        <div class="workflow-actions">
+                            <button class="btn btn-connect" onclick="openConnectDatabaseModal()" style="margin-top: 0.5rem;">Connect to Database</button>
+                            <button class="btn" style="margin-top: 0.5rem; margin-left: 0.5rem;">Open Workflow</button>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connect to Database Modal -->
+<div id="connectDatabaseModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Connect Workflow to Database</h3>
+            <span class="close" onclick="closeConnectDatabaseModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Select a Google Drive folder database to connect your workflow to:</p>
+            
+            <div class="database-list" id="database-list">
+                <div class="loading-message">Loading available databases...</div>
+            </div>
+            
+            <div class="connection-details" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e1e5e9;">
+                <h4>About Database Connections</h4>
+                <p style="font-size: 0.85rem; color: #666; line-height: 1.4;">
+                    Connecting your workflow to a database gives it access to all the processed booking data 
+                    from that Google Drive folder. This includes guest information, booking details, 
+                    financial data, and import history.
+                </p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeConnectDatabaseModal()">Cancel</button>
         </div>
     </div>
 </div>
@@ -530,6 +559,83 @@
     color: white;
     text-decoration: none;
 }
+
+/* Connect to Database Styles */
+.btn-connect {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-connect:hover {
+    background-color: #218838;
+}
+
+.database-list {
+    margin: 1rem 0;
+}
+
+.database-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.database-item:hover {
+    background-color: #e9ecef;
+}
+
+.database-info h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    color: #2c3e50;
+}
+
+.database-info p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.database-stats {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+.btn-select-db {
+    background-color: #0066cc;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-select-db:hover {
+    background-color: #0052a3;
+}
+
+.connection-info {
+    font-size: 0.85rem;
+}
+
+.connection-status-connected {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.connection-status-disconnected {
+    color: #666;
+    font-style: italic;
+}
 </style>
 
 <script>
@@ -578,6 +684,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update headers
                 column2Header.textContent = 'Workflows';
                 column3Header.textContent = 'SALT-Looong-weekend';
+                
+                // Load workflow connection status
+                loadWorkflowConnectionStatus();
             }
         });
     });
@@ -870,12 +979,155 @@ async function importBookingData() {
     }
 }
 
+// Connect to Database Modal functions
+function openConnectDatabaseModal() {
+    document.getElementById('connectDatabaseModal').style.display = 'flex';
+    loadAvailableDatabases();
+}
+
+function closeConnectDatabaseModal() {
+    document.getElementById('connectDatabaseModal').style.display = 'none';
+}
+
+async function loadAvailableDatabases() {
+    const databaseList = document.getElementById('database-list');
+    
+    try {
+        // Use the existing watch list API to get folders with data
+        const response = await fetch('/api/google-drive/list-watches/');
+        const data = await response.json();
+        
+        if (data.watches && data.watches.length > 0) {
+            let html = '';
+            
+            for (const watch of data.watches) {
+                // Get booking count for this folder
+                try {
+                    const folderResponse = await fetch(`/api/google-sheets/folder-stats/?folder_name=${encodeURIComponent(watch.folder_name)}`);
+                    const folderData = await folderResponse.json();
+                    const bookingCount = folderData.booking_count || 0;
+                    
+                    html += `
+                        <div class="database-item">
+                            <div class="database-info">
+                                <h4>${watch.folder_name}</h4>
+                                <p>Google Drive Folder Database</p>
+                                <div class="database-stats">${bookingCount} booking records available</div>
+                            </div>
+                            <button class="btn-select-db" onclick="connectToDatabase('${watch.folder_name}')">
+                                Connect
+                            </button>
+                        </div>
+                    `;
+                } catch (err) {
+                    // If stats API fails, still show the folder
+                    html += `
+                        <div class="database-item">
+                            <div class="database-info">
+                                <h4>${watch.folder_name}</h4>
+                                <p>Google Drive Folder Database</p>
+                                <div class="database-stats">Database available</div>
+                            </div>
+                            <button class="btn-select-db" onclick="connectToDatabase('${watch.folder_name}')">
+                                Connect
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+            
+            databaseList.innerHTML = html;
+        } else {
+            databaseList.innerHTML = `
+                <div class="no-data" style="text-align: center; padding: 2rem; color: #666;">
+                    <p>No databases available.</p>
+                    <p>Set up a Google Drive folder watch first to create a database.</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Failed to load databases:', error);
+        databaseList.innerHTML = `
+            <div class="error-message" style="text-align: center; padding: 2rem; color: #dc3545;">
+                Failed to load available databases.
+            </div>
+        `;
+    }
+}
+
+async function connectToDatabase(folderName) {
+    try {
+        // For now, we'll store the connection in localStorage
+        // In a real implementation, this would be saved to the backend
+        const connection = {
+            workflow: 'SALT Long Weekend Project',
+            database: folderName,
+            connected_at: new Date().toISOString()
+        };
+        
+        localStorage.setItem('workflow_database_connection', JSON.stringify(connection));
+        
+        // Update the connection status display
+        updateWorkflowConnectionStatus(connection);
+        
+        // Close the modal
+        closeConnectDatabaseModal();
+        
+        // Show success message
+        alert(`Successfully connected to ${folderName} database!`);
+        
+    } catch (error) {
+        console.error('Failed to connect to database:', error);
+        alert('Failed to connect to database. Please try again.');
+    }
+}
+
+function updateWorkflowConnectionStatus(connection) {
+    const statusDiv = document.getElementById('workflow-connection-status');
+    if (statusDiv && connection) {
+        const connectionInfo = statusDiv.querySelector('.connection-info');
+        connectionInfo.innerHTML = `
+            <div class="connection-status-connected">
+                ✓ Connected to ${connection.database} database
+            </div>
+            <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">
+                Connected on ${new Date(connection.connected_at).toLocaleDateString('en-AU')}
+            </div>
+        `;
+    }
+}
+
+function loadWorkflowConnectionStatus() {
+    try {
+        const connection = JSON.parse(localStorage.getItem('workflow_database_connection'));
+        if (connection) {
+            updateWorkflowConnectionStatus(connection);
+        } else {
+            const statusDiv = document.getElementById('workflow-connection-status');
+            if (statusDiv) {
+                const connectionInfo = statusDiv.querySelector('.connection-info');
+                connectionInfo.innerHTML = `
+                    <div class="connection-status-disconnected">
+                        No database connected
+                    </div>
+                `;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load connection status:', error);
+    }
+}
+
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
     const configModal = document.getElementById('configureWatchModal');
+    const connectModal = document.getElementById('connectDatabaseModal');
     
     if (event.target === configModal) {
         closeConfigureWatchModal();
+    } else if (event.target === connectModal) {
+        closeConnectDatabaseModal();
     }
 });
 </script>

@@ -805,3 +805,76 @@ def get_last_import_info(request):
             {"error": f"Failed to get import info: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@extend_schema(
+    summary="Get Folder Statistics",
+    description="Get statistics about a specific Google Drive folder's processed data",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "folder_name": {"type": "string"},
+                "booking_count": {"type": "integer"},
+                "last_import": {"type": "string", "format": "date-time"}
+            }
+        },
+        404: {
+            "type": "object",
+            "properties": {
+                "error": {"type": "string"}
+            }
+        }
+    },
+    tags=["Google Sheets"]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_folder_statistics(request):
+    """
+    Get statistics about a specific folder's processed booking data.
+    """
+    folder_name = request.GET.get('folder_name')
+    
+    if not folder_name:
+        return Response(
+            {"error": "folder_name parameter is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Get the folder for the current user
+        folder = GoogleDriveFolder.objects.filter(
+            folder_name=folder_name,
+            user=request.user,
+            is_active=True
+        ).first()
+        
+        if not folder:
+            return Response(
+                {"error": "Folder not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get booking count
+        booking_count = Booking.objects.filter(
+            ingestion_run__folder=folder
+        ).count()
+        
+        # Get last import
+        last_import = IngestionRun.objects.filter(
+            folder=folder,
+            completed_at__isnull=False
+        ).order_by('-completed_at').first()
+        
+        return Response({
+            "folder_name": folder.folder_name,
+            "booking_count": booking_count,
+            "last_import": last_import.completed_at.isoformat() if last_import else None
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to get folder statistics: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
