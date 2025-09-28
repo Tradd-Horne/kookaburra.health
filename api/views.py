@@ -343,18 +343,18 @@ def setup_google_drive_watch(request):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Try to get or create the folder record
+        # Try to get or create the folder record for this specific user
         folder, folder_created = GoogleDriveFolder.objects.get_or_create(
             folder_id=folder_id,
+            user=request.user,  # Include user in the get_or_create lookup
             defaults={
                 'folder_name': folder_info['name'],
                 'owner_email': folder_info['owner'],
-                'user': request.user,
                 'last_validated': timezone.now()
             }
         )
         
-        # Update folder info if it already exists
+        # Update folder info if it already exists for this user
         if not folder_created:
             folder.folder_name = folder_info['name']
             folder.owner_email = folder_info['owner']
@@ -515,9 +515,9 @@ def list_google_drive_watches(request):
             days_until_expiration = (config.expiration - now).days if config.expiration > now else 0
             
             # Convert timestamps to Queensland time with DD-MM-YYYY format
-            last_validated_qld = folder.last_validated.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p AEST')
-            created_qld = config.created_at.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p AEST')
-            expiration_qld = config.expiration.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p AEST')
+            last_validated_qld = folder.last_validated.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p %Z')
+            created_qld = config.created_at.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p %Z')
+            expiration_qld = config.expiration.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p %Z')
             
             # Generate Google Drive folder URL
             folder_url = f"https://drive.google.com/drive/folders/{folder.folder_id}"
@@ -546,6 +546,128 @@ def list_google_drive_watches(request):
     except Exception as e:
         return Response(
             {"error": f"Failed to fetch watch configurations: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def delete_google_drive_watch(request):
+    """
+    Delete a Google Drive watch configuration.
+    
+    This will stop monitoring the specified folder and remove the watch configuration.
+    """
+    try:
+        data = request.data
+        folder_name = data.get('folder_name')
+        
+        if not folder_name:
+            return Response(
+                {"error": "folder_name is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find the watch configuration for this user and folder
+        try:
+            watch_config = GoogleDriveWatchConfig.objects.get(
+                user=request.user,
+                folder__folder_name=folder_name,
+                is_active=True
+            )
+        except GoogleDriveWatchConfig.DoesNotExist:
+            return Response(
+                {"error": f"No active watch configuration found for folder '{folder_name}'"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Mark the watch as inactive instead of deleting to preserve history
+        watch_config.is_active = False
+        watch_config.save()
+        
+        return Response(
+            {
+                "status": "success",
+                "message": f"Watch configuration for '{folder_name}' has been deleted successfully"
+            },
+            status=status.HTTP_200_OK
+        )
+        
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to delete watch configuration: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_inactive_folders_with_data(request):
+    """
+    List folders that have imported data but are no longer being watched.
+    
+    This allows users to still access data from previously watched folders
+    even after deleting the watch configuration.
+    """
+    try:
+        # Get Queensland timezone
+        qld_tz = pytz.timezone('Australia/Brisbane')
+        
+        # Get all folders that have bookings but no active watch config
+        from .models import Booking
+        
+        # Get folders with booking data
+        folders_with_data = GoogleDriveFolder.objects.filter(
+            bookings__user=request.user
+        ).distinct()
+        
+        # Get currently active watch folders
+        active_watch_folders = GoogleDriveFolder.objects.filter(
+            watch_configs__user=request.user,
+            watch_configs__is_active=True
+        ).distinct()
+        
+        # Find folders that have data but no active watch
+        inactive_folders = folders_with_data.exclude(
+            id__in=active_watch_folders.values_list('id', flat=True)
+        )
+        
+        inactive_data = []
+        for folder in inactive_folders:
+            # Get booking count for this folder
+            booking_count = Booking.objects.filter(
+                user=request.user,
+                folder_name=folder.folder_name
+            ).count()
+            
+            if booking_count > 0:
+                # Get last import date
+                last_booking = Booking.objects.filter(
+                    user=request.user,
+                    folder_name=folder.folder_name
+                ).order_by('-created_at').first()
+                
+                last_import_qld = last_booking.created_at.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p %Z') if last_booking else 'Unknown'
+                
+                # Generate Google Drive folder URL
+                folder_url = f"https://drive.google.com/drive/folders/{folder.folder_id}"
+                
+                folder_data = {
+                    "folder_name": folder.folder_name,
+                    "folder_id": folder.folder_id,
+                    "folder_url": folder_url,
+                    "booking_count": booking_count,
+                    "last_import": last_import_qld,
+                    "status": "Data Available"
+                }
+                
+                inactive_data.append(folder_data)
+        
+        return Response({"inactive_folders": inactive_data}, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to fetch inactive folders: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -786,7 +908,7 @@ def get_last_import_info(request):
         
         # Format the time in Queensland timezone
         completed_qld = last_import.completed_at.astimezone(qld_tz)
-        formatted_time = completed_qld.strftime('%d-%m-%Y %I:%M:%S %p AEST')
+        formatted_time = completed_qld.strftime('%d-%m-%Y %I:%M:%S %p %Z')
         
         return Response({
             "last_import": {

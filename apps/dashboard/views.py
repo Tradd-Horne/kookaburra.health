@@ -66,8 +66,9 @@ def folder_bookings(request, folder_name):
     if request.GET.get('export') == 'csv':
         return export_bookings_csv(request, folder)
     
-    # Get all bookings for this folder
+    # Get all bookings for this user only
     bookings_queryset = Booking.objects.filter(
+        user=request.user,
         ingestion_run__folder=folder
     ).select_related('ingestion_run').order_by('arrive_date', '-created_at')
     
@@ -127,8 +128,9 @@ def folder_bookings(request, folder_name):
         completed_at__isnull=False
     ).order_by('-completed_at')[:5]
     
-    # Get unique booking statuses for filter dropdown
+    # Get unique booking statuses for filter dropdown (user-specific)
     booking_statuses = Booking.objects.filter(
+        user=request.user,
         ingestion_run__folder=folder
     ).values_list('status', flat=True).distinct().order_by('status')
     
@@ -158,8 +160,9 @@ def folder_bookings(request, folder_name):
 def export_bookings_csv(request, folder):
     """Export bookings data as CSV."""
     
-    # Get filtered bookings (same filtering logic as main view)
+    # Get filtered bookings for this user only (same filtering logic as main view)
     bookings_queryset = Booking.objects.filter(
+        user=request.user,
         ingestion_run__folder=folder
     ).select_related('ingestion_run').order_by('arrive_date', '-created_at')
     
@@ -291,6 +294,7 @@ def guest_extra_night_workflow(request):
     # Django week_day: 1=Sunday, 2=Monday, 3=Tuesday, 4=Wednesday, 5=Thursday, 6=Friday, 7=Saturday
     # Look for bookings that check in on Friday and check out on Sunday
     eligible_guests = Booking.objects.filter(
+        user=request.user,  # Only show current user's bookings
         ingestion_run__folder=connected_folder,
         arrive_date__isnull=False,
         depart_date__isnull=False,

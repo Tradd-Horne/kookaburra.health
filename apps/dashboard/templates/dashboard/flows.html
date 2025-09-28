@@ -84,6 +84,13 @@
                             </div>
                             <button class="btn" onclick="openConfigureWatchModal()">Add New Watch</button>
                         </div>
+                        
+                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e1e5e9;">
+                            <h4 style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Previously Imported Data</h4>
+                            <div id="inactive-folders-list">
+                                <div class="loading-message">Loading inactive folders...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -505,6 +512,21 @@
     border-radius: 6px;
 }
 
+.no-watches-compact {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+}
+
+.no-watches-compact p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #666;
+    font-style: italic;
+}
+
 .error-message {
     background-color: #f8d7da;
     border: 1px solid #f5c6cb;
@@ -540,6 +562,9 @@
     margin-top: 1rem;
     padding-top: 0.75rem;
     border-top: 1px solid #e1e5e9;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .btn-view-data {
@@ -558,6 +583,31 @@
     background-color: #138496;
     color: white;
     text-decoration: none;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+    color: white;
+}
+
+.btn-delete svg {
+    width: 16px;
+    height: 16px;
 }
 
 /* Connect to Database Styles */
@@ -636,6 +686,50 @@
     color: #666;
     font-style: italic;
 }
+
+/* Inactive folder styles - compact single line */
+.inactive-folder-item {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.inactive-folder-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+}
+
+.inactive-folder-name {
+    font-weight: 600;
+    color: #6c757d;
+    flex: 1;
+}
+
+.inactive-folder-count {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.btn-view-data-small {
+    background-color: #17a2b8;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.btn-view-data-small:hover {
+    background-color: #138496;
+    color: white;
+    text-decoration: none;
+}
 </style>
 
 <script>
@@ -643,6 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load Google Drive data by default on page load
     loadWatchConfigurations();
     loadLastImportInfo();
+    loadInactiveFolders();
     
     const categoryItems = document.querySelectorAll('[data-category]');
     
@@ -674,6 +769,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Load watch configurations and last import info
                 loadWatchConfigurations();
                 loadLastImportInfo();
+                loadInactiveFolders();
             } else if (category === 'workflows') {
                 // Show Workflows content
                 document.getElementById('google-drive-content').style.display = 'none';
@@ -729,6 +825,12 @@ async function loadWatchConfigurations() {
                         </div>
                         <div class="watch-actions">
                             <a href="/dashboard/flows/watched-folders/${watch.folder_name}/" class="btn btn-view-data">View Data</a>
+                            <button class="btn btn-delete" onclick="deleteWatch('${watch.folder_name}')" title="Delete watch configuration">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M3 4h10l-1 10H4L3 4zM5 2h6v1H5V2zM6 6v6h1V6H6zM9 6v6h1V6H9z"/>
+                                    <path d="M2 4h12v1H2V4z"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -737,9 +839,8 @@ async function loadWatchConfigurations() {
             watchList.innerHTML = html;
         } else {
             watchList.innerHTML = `
-                <div class="no-watches">
+                <div class="no-watches-compact">
                     <p>No folders are currently being watched.</p>
-                    <p>Use "Add New Watch" to start monitoring a Google Drive folder.</p>
                 </div>
             `;
         }
@@ -749,6 +850,50 @@ async function loadWatchConfigurations() {
         watchList.innerHTML = `
             <div class="error-message">
                 Failed to load watch configurations. Please try again.
+            </div>
+        `;
+    }
+}
+
+// Load inactive folders with data
+async function loadInactiveFolders() {
+    const inactiveFoldersList = document.getElementById('inactive-folders-list');
+    
+    try {
+        inactiveFoldersList.innerHTML = '<div class="loading-message">Loading inactive folders...</div>';
+        
+        const response = await fetch('/api/google-drive/list-inactive-folders/');
+        const data = await response.json();
+        
+        if (data.inactive_folders && data.inactive_folders.length > 0) {
+            let html = '';
+            
+            data.inactive_folders.forEach(folder => {
+                html += `
+                    <div class="inactive-folder-item">
+                        <div class="inactive-folder-content">
+                            <span class="inactive-folder-name">${folder.folder_name}</span>
+                            <span class="inactive-folder-count">${folder.booking_count} records</span>
+                            <a href="/dashboard/flows/watched-folders/${folder.folder_name}/" class="btn btn-view-data-small">View Data</a>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            inactiveFoldersList.innerHTML = html;
+        } else {
+            inactiveFoldersList.innerHTML = `
+                <div class="no-watches-compact">
+                    <p>No previously imported data found.</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Failed to load inactive folders:', error);
+        inactiveFoldersList.innerHTML = `
+            <div class="error-message">
+                Failed to load inactive folders. Please try again.
             </div>
         `;
     }
@@ -915,6 +1060,39 @@ async function saveFolderWatch() {
     }
 }
 
+
+// Delete Watch Configuration
+async function deleteWatch(folderName) {
+    if (!confirm(`Are you sure you want to delete the watch configuration for "${folderName}"? This will stop monitoring this folder.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/google-drive/delete-watch/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ folder_name: folderName })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            alert('Watch configuration deleted successfully!');
+            // Refresh the watch configurations list and inactive folders
+            loadWatchConfigurations();
+            loadInactiveFolders();
+        } else {
+            alert('Failed to delete watch configuration: ' + (data.error || 'Unknown error'));
+        }
+        
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Network error during deletion. Please try again.');
+    }
+}
 
 // Import Booking Data
 async function importBookingData() {

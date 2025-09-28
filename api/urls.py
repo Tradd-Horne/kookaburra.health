@@ -23,6 +23,8 @@ urlpatterns = [
     path('google-drive/validate-folder/', views.validate_google_drive_folder, name='validate_google_drive_folder'),
     path('google-drive/setup-watch/', views.setup_google_drive_watch, name='setup_google_drive_watch'),
     path('google-drive/list-watches/', views.list_google_drive_watches, name='list_google_drive_watches'),
+    path('google-drive/delete-watch/', views.delete_google_drive_watch, name='delete_google_drive_watch'),
+    path('google-drive/list-inactive-folders/', views.list_inactive_folders_with_data, name='list_inactive_folders_with_data'),
     
     # Google Sheets endpoints
     path('google-sheets/import-bookings/', views.import_booking_data, name='import_booking_data'),

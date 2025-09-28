@@ -16,7 +16,6 @@ class GoogleDriveFolder(models.Model):
     """
     folder_id = models.CharField(
         max_length=255,
-        unique=True,
         help_text="Google Drive folder ID"
     )
     folder_name = models.CharField(
@@ -49,6 +48,7 @@ class GoogleDriveFolder(models.Model):
         verbose_name = 'Google Drive Folder'
         verbose_name_plural = 'Google Drive Folders'
         ordering = ['-created_at']
+        unique_together = ['folder_id', 'user']  # Same folder can be added by multiple users
 
     def __str__(self):
         return f"{self.folder_name} ({self.folder_id})"
@@ -234,7 +234,6 @@ class Booking(models.Model):
     # Natural key (immutable)
     booking_number = models.CharField(
         max_length=50,
-        unique=True,
         help_text="Booking number (e.g., 214078)"
     )
     
@@ -452,6 +451,12 @@ class Booking(models.Model):
         on_delete=models.CASCADE,
         related_name='bookings'
     )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='bookings',
+        help_text="User who imported this booking data"
+    )
     
     # Django metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -462,11 +467,13 @@ class Booking(models.Model):
         verbose_name = 'Booking'
         verbose_name_plural = 'Bookings'
         ordering = ['-booking_number']
+        unique_together = ['booking_number', 'user']  # Same booking number can exist for different users
         indexes = [
             models.Index(fields=['booking_number']),
             models.Index(fields=['arrive_date']),
             models.Index(fields=['status']),
             models.Index(fields=['source_file_time']),
+            models.Index(fields=['user']),
         ]
 
     def __str__(self):

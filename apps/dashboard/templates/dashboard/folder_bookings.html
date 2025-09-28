@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load timezone_extras %}
 
 {% block title %}{{ folder.folder_name }} Bookings - Dashboard{% endblock %}
 {% block page_title %}{{ folder.folder_name }} Bookings Data{% endblock %}
@@ -105,7 +106,7 @@
             {% for import_run in recent_imports %}
             <div class="import-item">
                 <span class="filename">{{ import_run.filename }}</span>
-                <span class="date">{{ import_run.completed_at|date:"d-m-Y H:i" }} AEST</span>
+                <span class="date">{{ import_run.completed_at|qld_timezone }}</span>
                 <span class="status status-{{ import_run.status }}">{{ import_run.status }}</span>
                 <span class="stats">{{ import_run.rows_inserted }} new, {{ import_run.rows_updated }} updated</span>
             </div>
@@ -189,7 +190,7 @@
                                     </p>
                                     <p><strong>Imported:</strong> 
                                         {% if booking.ingestion_run.completed_at %}
-                                            {{ booking.ingestion_run.completed_at|date:"d-m-Y H:i:s" }} AEST
+                                            {{ booking.ingestion_run.completed_at|qld_timezone_full }}
                                         {% else %}
                                             Processing...
                                         {% endif %}

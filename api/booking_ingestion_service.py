@@ -75,7 +75,8 @@ class BookingIngestionService:
             
             files = results.get('files', [])
             
-            # Filter out already processed files
+            # Filter out already processed files for this specific user's folder
+            # Each user gets their own isolated data set, even from the same Google Drive files
             processed_file_ids = set(
                 ProcessedFile.objects.filter(folder=folder).values_list('file_id', flat=True)
             )
@@ -121,10 +122,14 @@ class BookingIngestionService:
         booking_number = str(booking_data['booking_number']).strip()
         
         try:
-            existing_booking = Booking.objects.get(booking_number=booking_number)
+            # Look for existing booking for this specific user
+            existing_booking = Booking.objects.get(
+                booking_number=booking_number,
+                user=ingestion_run.folder.user
+            )
             
             # Check if incoming data is newer
-            if booking_data.get('source_file_time', ingestion_run.data_time) <= existing_booking.source_file_time:
+            if booking_data.get('source_file_time', ingestion_run.data_time) < existing_booking.source_file_time:
                 return 'ignored', f"Older data ignored (file time: {ingestion_run.data_time})"
             
             # Check for immutable field conflicts
@@ -198,7 +203,8 @@ class BookingIngestionService:
                 source_file_id=ingestion_run.file_id,
                 source_file_time=ingestion_run.data_time,
                 source_row_hash=self.calculate_row_hash(booking_data),
-                ingestion_run=ingestion_run
+                ingestion_run=ingestion_run,
+                user=ingestion_run.folder.user
             )
             
             return 'inserted', f"New booking created: {booking.booking_number}"

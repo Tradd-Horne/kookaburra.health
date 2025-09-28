@@ -21,7 +21,8 @@ class GoogleSheetsService:
         self.service_account_file = service_account_file
         self.sheets_service = None
         
-        # Column mapping for booking data - based on your Excel header
+        # Column mapping for booking data - exact order as specified
+        # This mapping assumes columns are ALWAYS in this exact order, regardless of headers
         self.COLUMN_MAPPING = {
             0: 'booking_number',     # No.
             1: 'status',             # Status
@@ -249,15 +250,32 @@ class GoogleSheetsService:
         """
         Detect if first row is a header and return header row index.
         Returns (header_row_index, has_header)
+        
+        Since our data has a fixed column structure, we check if the first row
+        contains text headers vs numeric booking data.
         """
         if not rows:
             return 0, False
             
         first_row = rows[0] if rows else []
+        if not first_row:
+            return 0, False
         
-        # Check if first row looks like headers
-        header_indicators = ['No.', 'Status', 'Name', 'Surname', 'Arrive', 'Depart']
-        matches = sum(1 for cell in first_row if any(indicator in str(cell) for indicator in header_indicators))
+        # Check if first cell looks like a booking number (numeric) vs header text
+        first_cell = str(first_row[0]).strip()
+        
+        # If first cell is numeric, it's likely a booking number, not a header
+        if first_cell.isdigit():
+            return -1, False
+        
+        # Check if first row looks like headers - expanded to handle variations
+        header_indicators = [
+            'No.', 'Status', 'Name', 'Surname', 'Arrive', 'Depart',
+            'Booking', 'File As', 'Company', 'Region', 'Portal', 'Room',
+            'Arrival', 'Departure', 'Check In', 'Check Out', 'Check-in', 'Check-out',
+            'Email', 'Mobile', 'Phone', 'Agent', 'Total', 'Balance', 'Deposit'
+        ]
+        matches = sum(1 for cell in first_row if any(indicator.lower() in str(cell).lower() for indicator in header_indicators))
         
         has_header = matches >= 3  # If at least 3 header indicators match
         
@@ -305,9 +323,15 @@ class GoogleSheetsService:
         if not normalized_data.get('first_name') and not normalized_data.get('surname'):
             return False, "Missing guest name"
         
-        # Should have arrival date
+        # Should have arrival date (but be more flexible)
         if not normalized_data.get('arrive_date'):
-            return False, "Missing arrival date"
+            # Check if there's any date field that could be arrival date
+            date_fields = ['arrive_date', 'depart_date', 'booking_date', 'deposit_by_date']
+            has_any_date = any(normalized_data.get(field) for field in date_fields)
+            if not has_any_date:
+                return False, "Missing arrival date"
+            # If there are other dates but no arrival date, allow it through with a warning
+            # The booking can still be processed for other purposes
         
         return True, ""
     
