@@ -40,483 +40,149 @@
             <button class="btn btn-refresh" onclick="location.reload()">🔄 Refresh Data</button>
         </div>
     </div>
-
-    <!-- Workflow Summary -->
-    <div class="workflow-summary">
-        <div class="summary-lines">
-            <div class="summary-line expandable" onclick="toggleEligibleGuests()">
-                <span class="summary-label">Total Eligible Guests (Sunday checkout, >2 nights):</span>
-                <span class="summary-number">{{ summary.total_eligible }}</span>
-                <span class="expand-icon" id="expand-icon">▼</span>
-            </div>
-            <div class="eligible-guests-dropdown" id="eligible-guests-dropdown" style="display: none;">
-                {% if eligible_grouped_sorted %}
-                    <div class="guests-table-container">
-                        <table class="guests-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Booking #</th>
-                                    <th>Check-in</th>
-                                    <th>Check-out</th>
-                                    <th>Room</th>
-                                    <th>Rate</th>
-                                    <th>T-14 Date</th>
-                                    <th>T-1 Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for checkout_group in eligible_grouped_sorted %}
-                                    <!-- Group header row (clickable accordion) -->
-                                    <tr class="group-header accordion-header" onclick="toggleEligibleGroup('{{ forloop.counter }}')">
-                                        <td colspan="8">
-                                            <span class="accordion-icon" id="eligible-icon-{{ forloop.counter }}">▼</span>
-                                            <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
-                                        </td>
-                                    </tr>
-                                    <!-- Guest rows for this group (collapsible) -->
-                                    <tbody id="eligible-group-{{ forloop.counter }}" class="accordion-content">
-                                    {% for guest in checkout_group.guests %}
-                                    <tr>
-                                        <td><strong>{{ guest.booking.first_name }} {{ guest.booking.surname }}</strong></td>
-                                        <td>{{ guest.booking.booking_number }}</td>
-                                        <td>{{ guest.booking.arrive_date|date:"D d-m-Y" }}</td>
-                                        <td>{{ guest.booking.depart_date|date:"D d-m-Y" }}</td>
-                                        <td>{{ guest.booking.room_number|default:"-" }} ({{ guest.booking.room_type|default:"Standard" }})</td>
-                                        <td>{{ guest.booking.rate|default:"Standard Rate" }}</td>
-                                        <!-- T-14 Date with status -->
-                                        <td>
-                                            {{ guest.t14_date|date:"D d-m-Y" }}
-                                            {% if guest.t14_status == 'ready' %}
-                                                <br><span class="countdown-badge ready">Send Today</span>
-                                            {% elif guest.t14_status == 'countdown' %}
-                                                <br><span class="countdown-badge countdown">
-                                                    {% if guest.t14_days > 0 %}
-                                                        {{ guest.t14_days }}d
-                                                        {% if guest.t14_hours > 0 %} {{ guest.t14_hours }}h{% endif %}
-                                                    {% else %}
-                                                        {{ guest.t14_hours }}h
-                                                    {% endif %}
-                                                </span>
-                                            {% elif guest.t14_status == 'past' %}
-                                                <br><span class="countdown-badge past">T-14 Passed</span>
-                                            {% endif %}
-                                        </td>
-                                        <!-- T-1 Date with status -->
-                                        <td>
-                                            {{ guest.t1_date|date:"D d-m-Y" }}
-                                            {% if guest.t1_status == 'ready' %}
-                                                <br><span class="countdown-badge t1-ready">Send Today</span>
-                                            {% elif guest.t1_status == 'countdown' %}
-                                                <br><span class="countdown-badge t1-countdown">
-                                                    {% if guest.t1_days > 0 %}
-                                                        {{ guest.t1_days }}d
-                                                        {% if guest.t1_hours > 0 %} {{ guest.t1_hours }}h{% endif %}
-                                                    {% else %}
-                                                        {{ guest.t1_hours }}h
-                                                    {% endif %}
-                                                </span>
-                                            {% elif guest.t1_status == 'past' %}
-                                                <br><span class="countdown-badge t1-past">Checked In</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="no-guests-message">
-                        No eligible guests found at this time.
-                    </div>
-                {% endif %}
-            </div>
-            <div class="summary-line expandable" onclick="toggleT14Guests()">
-                <span class="summary-label">T-14 Actions (Ready for SMS offers):</span>
-                <span class="summary-number pending">{{ summary.pending_t14 }}</span>
-                <span class="expand-icon" id="t14-expand-icon">▼</span>
-            </div>
-            <div class="t14-guests-dropdown" id="t14-guests-dropdown" style="display: none;">
-                {% if all_t14_guests %}
-                    <div class="t14-guests-table-container">
-                        <table class="t14-guests-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Booking #</th>
-                                    <th>Check-in</th>
-                                    <th>Check-out</th>
-                                    <th>Room</th>
-                                    <th>Rate</th>
-                                    <th>T-14 Date</th>
-                                    <th>SMS Countdown</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for checkout_group in t14_grouped_sorted %}
-                                    <!-- Group header row (clickable accordion) -->
-                                    <tr class="group-header accordion-header" onclick="toggleT14Group('{{ forloop.counter }}')">
-                                        <td colspan="10">
-                                            <span class="accordion-icon" id="t14-icon-{{ forloop.counter }}">▼</span>
-                                            <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
-                                        </td>
-                                    </tr>
-                                    <!-- Guest rows for this group (collapsible) -->
-                                    <tbody id="t14-group-{{ forloop.counter }}" class="accordion-content">
-                                    {% for t14_data in checkout_group.guests %}
-                                        <tr class="t14-row status-{{ t14_data.status }}">
-                                            <td><strong>{{ t14_data.guest.booking.first_name }} {{ t14_data.guest.booking.surname }}</strong></td>
-                                            <td>{{ t14_data.guest.booking.booking_number }}</td>
-                                            <td>{{ t14_data.guest.booking.arrive_date|date:"D d-m-Y" }}</td>
-                                            <td>{{ t14_data.guest.booking.depart_date|date:"D d-m-Y" }}</td>
-                                            <td>{{ t14_data.guest.booking.room_number|default:"-" }} ({{ t14_data.guest.booking.room_type|default:"Standard" }})</td>
-                                            <td>{{ t14_data.guest.booking.rate|default:"Standard Rate" }}</td>
-                                            <td>{{ t14_data.t14_date|date:"D d-m-Y" }}</td>
-                                            <td>
-                                                {% if t14_data.status == 'ready' %}
-                                                    <span class="countdown-badge ready">Send Today</span>
-                                                {% elif t14_data.status == 'countdown' %}
-                                                    <span class="countdown-badge countdown">
-                                                        {% if t14_data.days_to_t14 > 0 %}
-                                                            {{ t14_data.days_to_t14 }}d
-                                                            {% if t14_data.hours_to_t14 > 0 %} {{ t14_data.hours_to_t14 }}h{% endif %}
-                                                        {% else %}
-                                                            {{ t14_data.hours_to_t14 }}h
-                                                        {% endif %}
-                                                    </span>
-                                                {% elif t14_data.status == 'past' %}
-                                                    <span class="countdown-badge past">T-14 Passed</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if t14_data.status == 'ready' %}
-                                                    <span class="status-indicator ready">🟢 Ready</span>
-                                                {% elif t14_data.status == 'countdown' %}
-                                                    <span class="status-indicator countdown">⏳ Waiting</span>
-                                                {% elif t14_data.status == 'past' %}
-                                                    <span class="status-indicator past">⚠️ Past</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if t14_data.status == 'ready' %}
-                                                    <button class="btn-table-sms" onclick="sendSMSOffer('{{ t14_data.guest.booking.id }}', 't14')">
-                                                        📱 SMS
-                                                    </button>
-                                                {% elif t14_data.status == 'countdown' %}
-                                                    <button class="btn-table-view" onclick="viewGuestDetails('{{ t14_data.guest.booking.id }}')">
-                                                        👁️ View
-                                                    </button>
-                                                {% elif t14_data.status == 'past' %}
-                                                    <button class="btn-table-sms" onclick="sendSMSOffer('{{ t14_data.guest.booking.id }}', 't1')">
-                                                        📱 T-1
-                                                    </button>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="no-t14-message">
-                        No eligible guests found for T-14 SMS workflow.
-                    </div>
-                {% endif %}
-            </div>
-            <div class="summary-line expandable" onclick="toggleT1Guests()">
-                <span class="summary-label">T-1 Actions (Final reminders):</span>
-                <span class="summary-number urgent">{{ summary.pending_t1 }}</span>
-                <span class="expand-icon" id="t1-expand-icon">▼</span>
-            </div>
-            <div class="t1-guests-dropdown" id="t1-guests-dropdown" style="display: none;">
-                {% if all_t1_guests %}
-                    <div class="t1-guests-table-container">
-                        <table class="t1-guests-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Booking #</th>
-                                    <th>Check-in</th>
-                                    <th>Check-out</th>
-                                    <th>Room</th>
-                                    <th>Rate</th>
-                                    <th>T-1 Date</th>
-                                    <th>SMS Countdown</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for checkout_group in t1_grouped_sorted %}
-                                    <!-- Group header row (clickable accordion) -->
-                                    <tr class="group-header accordion-header" onclick="toggleT1Group('{{ forloop.counter }}')">
-                                        <td colspan="10">
-                                            <span class="accordion-icon" id="t1-icon-{{ forloop.counter }}">▼</span>
-                                            <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
-                                        </td>
-                                    </tr>
-                                    <!-- Guest rows for this group (collapsible) -->
-                                    <tbody id="t1-group-{{ forloop.counter }}" class="accordion-content">
-                                    {% for t1_data in checkout_group.guests %}
-                                        <tr class="t1-row status-{{ t1_data.status }}">
-                                            <td><strong>{{ t1_data.guest.booking.first_name }} {{ t1_data.guest.booking.surname }}</strong></td>
-                                            <td>{{ t1_data.guest.booking.booking_number }}</td>
-                                            <td>{{ t1_data.guest.booking.arrive_date|date:"D d-m-Y" }}</td>
-                                            <td>{{ t1_data.guest.booking.depart_date|date:"D d-m-Y" }}</td>
-                                            <td>{{ t1_data.guest.booking.room_number|default:"-" }} ({{ t1_data.guest.booking.room_type|default:"Standard" }})</td>
-                                            <td>{{ t1_data.guest.booking.rate|default:"Standard Rate" }}</td>
-                                            <td>{{ t1_data.t1_date|date:"D d-m-Y" }}</td>
-                                            <td>
-                                                {% if t1_data.status == 'ready' %}
-                                                    <span class="countdown-badge t1-ready">Send Today</span>
-                                                {% elif t1_data.status == 'countdown' %}
-                                                    <span class="countdown-badge t1-countdown">
-                                                        {% if t1_data.days_to_t1 > 0 %}
-                                                            {{ t1_data.days_to_t1 }}d
-                                                            {% if t1_data.hours_to_t1 > 0 %} {{ t1_data.hours_to_t1 }}h{% endif %}
-                                                        {% else %}
-                                                            {{ t1_data.hours_to_t1 }}h
-                                                        {% endif %}
-                                                    </span>
-                                                {% elif t1_data.status == 'past' %}
-                                                    <span class="countdown-badge t1-past">Checked In</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if t1_data.status == 'ready' %}
-                                                    <span class="status-indicator t1-ready">🔴 T-1 Ready</span>
-                                                {% elif t1_data.status == 'countdown' %}
-                                                    <span class="status-indicator t1-countdown">⏳ T-1 Wait</span>
-                                                {% elif t1_data.status == 'past' %}
-                                                    <span class="status-indicator t1-past">✅ Arrived</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if t1_data.status == 'ready' %}
-                                                    <button class="btn-table-sms" onclick="sendSMSOffer('{{ t1_data.guest.booking.id }}', 't1')">
-                                                        📱 T-1 SMS
-                                                    </button>
-                                                {% elif t1_data.status == 'countdown' %}
-                                                    <button class="btn-table-view" onclick="viewGuestDetails('{{ t1_data.guest.booking.id }}')">
-                                                        👁️ View
-                                                    </button>
-                                                {% elif t1_data.status == 'past' %}
-                                                    <button class="btn-table-view" onclick="viewGuestDetails('{{ t1_data.guest.booking.id }}')">
-                                                        👁️ Details
-                                                    </button>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="no-t1-message">
-                        No eligible guests found for T-1 SMS workflow.
-                    </div>
-                {% endif %}
-            </div>
-            <div class="summary-line">
-                <span class="summary-label">Monitoring (In workflow window):</span>
-                <span class="summary-number monitoring">{{ summary.in_monitoring }}</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Workflow Steps -->
-<div class="content-card">
-    <div class="workflow-steps">
-        <h3>📋 Workflow Process</h3>
-        <div class="steps-lines">
-            <div class="step-line">
-                <span class="step-number">1</span>
-                <span class="step-label">Guest Identification:</span>
-                <span class="step-description">checkout Sunday, staying > 2 nights. Room not booked for Sunday Night</span>
-            </div>
-            <div class="step-line">
-                <span class="step-number">2</span>
-                <span class="step-label">Timing Flags:</span>
-                <span class="step-description">T-14 days: System flags eligible guests, T-1 day: Re-offer if not accepted</span>
-            </div>
-            <div class="step-line">
-                <span class="step-number">3</span>
-                <span class="step-label">SMS Offers:</span>
-                <span class="step-description">$150 Sunday night stay, $75 late checkout (3pm)</span>
-            </div>
-            <div class="step-line">
-                <span class="step-number">4</span>
-                <span class="step-label">Guest Response:</span>
-                <span class="step-description">Reply 1: Extra night, Reply 2: Late checkout, STOP: Opt-out permanently</span>
-            </div>
-            <div class="step-line">
-                <span class="step-number">5</span>
-                <span class="step-label">Payment Pathway:</span>
-                <span class="step-description">Confirmation SMS sent, Reception contacted to finalize</span>
-            </div>
-            <div class="step-line">
-                <span class="step-number">6</span>
-                <span class="step-label">Reception Finalization:</span>
-                <span class="step-description">Booking flagged for staff, Payment collected at check-in</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Guest Management Table -->
-<div class="content-card">
-    <h3>🎯 Guest Management</h3>
     
-    {% if workflow_guests %}
-    <div class="table-container">
-        <table class="workflow-table">
-            <thead>
-                <tr>
-                    <th>Guest</th>
-                    <th>Booking #</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Days Until</th>
-                    <th>Workflow Status</th>
-                    <th>Next Action</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for guest in workflow_guests %}
-                <tr class="guest-row {% if guest.t14_eligible %}t14-eligible{% elif guest.t1_eligible %}t1-eligible{% elif guest.in_window %}in-window{% endif %}">
-                    <td>
-                        <div class="guest-info">
-                            <strong>{{ guest.booking.first_name }} {{ guest.booking.surname }}</strong>
-                            <div class="guest-details">
-                                {% if guest.booking.mobile %}📱 {{ guest.booking.mobile }}{% endif %}
-                                {% if guest.booking.email %}<br>📧 {{ guest.booking.email }}{% endif %}
-                            </div>
+    <!-- Workflow Info Section -->
+    <div class="workflow-info-section">
+        <div class="info-cards-container">
+            <!-- Workflow Process Card -->
+            <div class="info-card">
+                <div class="summary-line expandable" onclick="toggleWorkflowProcess()">
+                    <span class="summary-label">📋 Workflow Process</span>
+                    <span class="expand-icon" id="workflow-expand-icon">▼</span>
+                </div>
+                <div class="workflow-process-dropdown" id="workflow-process-dropdown" style="display: none;">
+                    <div class="steps-lines">
+                        <div class="step-line">
+                            <span class="step-number">1</span>
+                            <span class="step-label">Guest Identification:</span>
+                            <span class="step-description">checkout Sunday, staying > 2 nights. Room not booked for Sunday Night</span>
                         </div>
-                    </td>
-                    <td><strong>{{ guest.booking.booking_number }}</strong></td>
-                    <td>
-                        <div class="date-info">
-                            {{ guest.booking.arrive_date|date:"D d-m-Y" }}
-                            <div class="room-info">{{ guest.booking.room_number|default:"-" }}</div>
+                        <div class="step-line">
+                            <span class="step-number">2</span>
+                            <span class="step-label">Timing Flags:</span>
+                            <span class="step-description">T-14 days: System flags eligible guests, T-1 day: Re-offer if not accepted</span>
                         </div>
-                    </td>
-                    <td>{{ guest.booking.depart_date|date:"D d-m-Y" }}</td>
-                    <td>
-                        <div class="days-until">
-                            {% if guest.days_until_checkin < 0 %}
-                                <span class="checked-in">Checked In</span>
-                            {% elif guest.days_until_checkin == 0 %}
-                                <span class="today">Today</span>
-                            {% else %}
-                                {{ guest.days_until_checkin }} day{{ guest.days_until_checkin|pluralize }}
-                            {% endif %}
+                        <div class="step-line">
+                            <span class="step-number">3</span>
+                            <span class="step-label">SMS Offers:</span>
+                            <span class="step-description">$150 Sunday night stay, $75 late checkout (3pm)</span>
                         </div>
-                    </td>
-                    <td>
-                        <span class="status-badge status-{{ guest.workflow_status }}">
-                            {% if guest.workflow_status == 'pending' %}Pending
-                            {% elif guest.workflow_status == 't14_sent' %}T-14 Sent
-                            {% elif guest.workflow_status == 't1_sent' %}T-1 Sent
-                            {% elif guest.workflow_status == 'accepted' %}Accepted
-                            {% elif guest.workflow_status == 'declined' %}Declined
-                            {% elif guest.workflow_status == 'completed' %}Completed
-                            {% else %}{{ guest.workflow_status|title }}
-                            {% endif %}
-                        </span>
-                    </td>
-                    <td class="next-action">{{ guest.next_action }}</td>
-                    <td>
-                        <div class="action-buttons">
-                            {% if guest.t14_eligible %}
-                                <button class="btn btn-sms" onclick="sendSMSOffer('{{ guest.booking.id }}', 't14')">
-                                    📱 Send T-14 SMS
-                                </button>
-                            {% elif guest.t1_eligible %}
-                                <button class="btn btn-sms" onclick="sendSMSOffer('{{ guest.booking.id }}', 't1')">
-                                    📱 Send T-1 SMS
-                                </button>
-                            {% else %}
-                                <button class="btn btn-view" onclick="viewGuestDetails('{{ guest.booking.id }}')">
-                                    👁️ View Details
-                                </button>
-                            {% endif %}
+                        <div class="step-line">
+                            <span class="step-number">4</span>
+                            <span class="step-label">Guest Response:</span>
+                            <span class="step-description">Reply 1: Extra night, Reply 2: Late checkout, STOP: Opt-out permanently</span>
                         </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <div class="no-guests">
-        <div class="no-guests-content">
-            <h4>🎉 No Eligible Guests Found</h4>
-            <p>Currently no guests with Sunday checkout and >2 nights stay in the workflow window.</p>
-            <p>Eligible guests will appear here 14 days before their check-in date.</p>
+                        <div class="step-line">
+                            <span class="step-number">5</span>
+                            <span class="step-label">Payment Pathway:</span>
+                            <span class="step-description">Confirmation SMS sent, Reception contacted to finalize</span>
+                        </div>
+                        <div class="step-line">
+                            <span class="step-number">6</span>
+                            <span class="step-label">Reception Finalization:</span>
+                            <span class="step-description">Booking flagged for staff, Payment collected at check-in</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Eligible Guests Card -->
+            <div class="info-card">
+                <div class="summary-line expandable" onclick="toggleEligibleGuests()">
+                    <span class="summary-label">Total Eligible Guests (Sunday checkout, >2 nights)</span>
+                    <span class="summary-number">{{ summary.total_eligible }}</span>
+                    <span class="expand-icon" id="expand-icon">▼</span>
+                </div>
+                <div class="eligible-guests-dropdown" id="eligible-guests-dropdown" style="display: none;">
+                    {% if eligible_grouped_sorted %}
+                        <div class="guests-table-container">
+                            <table class="guests-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Booking #</th>
+                                        <th>Check-in</th>
+                                        <th>Check-out</th>
+                                        <th>Room</th>
+                                        <th>Rate</th>
+                                        <th>T-14 Date</th>
+                                        <th>T-1 Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for checkout_group in eligible_grouped_sorted %}
+                                        <!-- Group header row (clickable accordion) -->
+                                        <tr class="group-header accordion-header" onclick="toggleEligibleGroup('{{ forloop.counter }}')">
+                                            <td colspan="8">
+                                                <span class="accordion-icon" id="eligible-icon-{{ forloop.counter }}">▼</span>
+                                                <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
+                                            </td>
+                                        </tr>
+                                        <!-- Guest rows for this group (collapsible) -->
+                                        <tbody id="eligible-group-{{ forloop.counter }}" class="accordion-content">
+                                        {% for guest in checkout_group.guests %}
+                                        <tr>
+                                            <td><strong>{{ guest.booking.first_name }} {{ guest.booking.surname }}</strong></td>
+                                            <td>{{ guest.booking.booking_number }}</td>
+                                            <td>{{ guest.booking.arrive_date|date:"D d-m-Y" }}</td>
+                                            <td>{{ guest.booking.depart_date|date:"D d-m-Y" }}</td>
+                                            <td>{{ guest.booking.room_number|default:"-" }} ({{ guest.booking.room_type|default:"Standard" }})</td>
+                                            <td>{{ guest.booking.rate|default:"Standard Rate" }}</td>
+                                            <!-- T-14 Date with status -->
+                                            <td>
+                                                {{ guest.t14_date|date:"D d-m-Y" }}
+                                                {% if guest.t14_status == 'ready' %}
+                                                    <br><span class="countdown-badge ready">Send Today</span>
+                                                {% elif guest.t14_status == 'countdown' %}
+                                                    <br><span class="countdown-badge countdown">
+                                                        {% if guest.t14_days > 0 %}
+                                                            {{ guest.t14_days }}d
+                                                            {% if guest.t14_hours > 0 %} {{ guest.t14_hours }}h{% endif %}
+                                                        {% else %}
+                                                            {{ guest.t14_hours }}h
+                                                        {% endif %}
+                                                    </span>
+                                                {% elif guest.t14_status == 'past' %}
+                                                    <br><span class="countdown-badge past">T-14 Passed</span>
+                                                {% endif %}
+                                            </td>
+                                            <!-- T-1 Date with status -->
+                                            <td>
+                                                {{ guest.t1_date|date:"D d-m-Y" }}
+                                                {% if guest.t1_status == 'ready' %}
+                                                    <br><span class="countdown-badge t1-ready">Send Today</span>
+                                                {% elif guest.t1_status == 'countdown' %}
+                                                    <br><span class="countdown-badge t1-countdown">
+                                                        {% if guest.t1_days > 0 %}
+                                                            {{ guest.t1_days }}d
+                                                            {% if guest.t1_hours > 0 %} {{ guest.t1_hours }}h{% endif %}
+                                                        {% else %}
+                                                            {{ guest.t1_hours }}h
+                                                        {% endif %}
+                                                    </span>
+                                                {% elif guest.t1_status == 'past' %}
+                                                    <br><span class="countdown-badge t1-past">Checked In</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="no-guests-message">
+                            No eligible guests found at this time.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
 </div>
 
-<!-- SMS Offer Modal -->
-<div id="smsOfferModal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-            <h3>📱 Send SMS Offer</h3>
-            <span class="close" onclick="closeSMSModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div id="sms-guest-info" class="guest-summary"></div>
-            
-            <div class="sms-template">
-                <h4>SMS Message Preview</h4>
-                <div class="sms-preview">
-                    "Hi from SALT Yeppoon 🌊. Special offer just for you — extend your stay to Sunday night for $150 or enjoy a late checkout at 3 pm for $75. Interested? Reply 1 for an extra night, 2 for a late checkout, or STOP to opt out."
-                </div>
-                <div class="sms-details">
-                    <p><strong>Character Count:</strong> 247 characters</p>
-                    <p><strong>Cost:</strong> ~$0.08 AUD per SMS</p>
-                </div>
-            </div>
-            
-            <div class="sms-options">
-                <h4>Response Options</h4>
-                <div class="response-grid">
-                    <div class="response-option">
-                        <strong>Reply "1"</strong><br>
-                        Sunday night extension ($150)
-                    </div>
-                    <div class="response-option">
-                        <strong>Reply "2"</strong><br>
-                        Late checkout 3pm ($75)
-                    </div>
-                    <div class="response-option">
-                        <strong>Reply "STOP"</strong><br>
-                        Opt-out permanently
-                    </div>
-                    <div class="response-option">
-                        <strong>No Reply</strong><br>
-                        Retry at T-1 day
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeSMSModal()">Cancel</button>
-            <button class="btn btn-sms-send" onclick="confirmSendSMS()">📱 Send SMS Now</button>
-        </div>
-    </div>
-</div>
+
 
 {% endif %}
 
@@ -578,6 +244,30 @@
     background-color: #5a6268;
 }
 
+/* Workflow Info Section */
+.workflow-info-section {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.info-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.info-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 1.25rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.info-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
 /* Summary Lines */
 .workflow-summary {
     margin-bottom: 2rem;
@@ -588,6 +278,17 @@
     border: 1px solid #e1e5e9;
     border-radius: 6px;
     padding: 1rem;
+}
+
+.info-card .summary-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    border: none;
 }
 
 .summary-line {
@@ -656,141 +357,6 @@
     transform: rotate(180deg);
 }
 
-/* T-14 Guests Dropdown */
-.t14-guests-dropdown {
-    margin-top: 0.5rem;
-    border-top: 1px solid #e9ecef;
-    padding-top: 0.75rem;
-    animation: slideDown 0.3s ease-out;
-}
-
-.t14-guests-table-container {
-    overflow-x: auto;
-}
-
-.t14-guests-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-}
-
-.t14-guests-table th {
-    background-color: #f8f9fa;
-    padding: 0.5rem 0.75rem;
-    text-align: left;
-    font-weight: 600;
-    color: #333;
-    border-bottom: 2px solid #e9ecef;
-    font-size: 0.75rem;
-}
-
-.t14-guests-table td {
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid #f0f0f0;
-    color: #666;
-    vertical-align: top;
-}
-
-.t14-guests-table td:first-child {
-    color: #2c3e50;
-}
-
-.t14-guests-table td strong {
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.t14-guests-table tr:last-child td {
-    border-bottom: none;
-}
-
-.t14-guests-table tr:hover {
-    background-color: #f8f9fa;
-}
-
-/* Status-based row styling */
-.t14-row.status-ready {
-    border-left: 3px solid #28a745;
-}
-
-.t14-row.status-countdown {
-    border-left: 3px solid #ffc107;
-}
-
-.t14-row.status-past {
-    border-left: 3px solid #dc3545;
-}
-
-/* T-1 Guests Table */
-.t1-guests-dropdown {
-    margin-top: 0.5rem;
-    border-top: 1px solid #e9ecef;
-    padding-top: 0.75rem;
-    animation: slideDown 0.3s ease-out;
-}
-
-.t1-guests-table-container {
-    overflow-x: auto;
-}
-
-.t1-guests-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-}
-
-.t1-guests-table th {
-    background-color: #f8f9fa;
-    padding: 0.5rem 0.75rem;
-    text-align: left;
-    font-weight: 600;
-    color: #333;
-    border-bottom: 2px solid #e9ecef;
-    font-size: 0.75rem;
-}
-
-.t1-guests-table td {
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid #f0f0f0;
-    color: #666;
-    vertical-align: top;
-}
-
-.t1-guests-table td:first-child {
-    color: #2c3e50;
-}
-
-.t1-guests-table td strong {
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.t1-guests-table tr:last-child td {
-    border-bottom: none;
-}
-
-.t1-guests-table tr:hover {
-    background-color: #f8f9fa;
-}
-
-/* T-1 Status-based row styling */
-.t1-row.status-ready {
-    border-left: 3px solid #dc3545;
-}
-
-.t1-row.status-countdown {
-    border-left: 3px solid #ffc107;
-}
-
-.t1-row.status-past {
-    border-left: 3px solid #6c757d;
-}
 
 /* Group header styling */
 .group-header {
@@ -840,17 +406,6 @@
     display: none;
 }
 
-.guest-summary {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.guest-summary strong {
-    color: #2c3e50;
-    font-weight: 600;
-}
 
 .booking-number {
     background-color: #e9ecef;
@@ -973,13 +528,12 @@
     background-color: #5a6268;
 }
 
-.no-t14-message,
-.no-t1-message {
-    text-align: center;
-    color: #666;
-    font-style: italic;
-    font-size: 0.8rem;
-    padding: 1rem;
+
+.workflow-process-dropdown {
+    margin-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+    animation: slideDown 0.3s ease-out;
 }
 
 .eligible-guests-dropdown {
@@ -1056,20 +610,9 @@
 }
 
 /* Workflow Steps */
-.workflow-steps {
-    margin-bottom: 2rem;
-}
-
-.workflow-steps h3 {
-    margin: 0 0 1.5rem 0;
-    color: #2c3e50;
-}
-
 .steps-lines {
-    background-color: #f8f9fa;
-    border: 1px solid #e1e5e9;
-    border-radius: 6px;
-    padding: 1rem;
+    background-color: transparent;
+    padding: 0;
 }
 
 .step-line {
@@ -1119,212 +662,7 @@
     flex: 1;
 }
 
-/* Guest Table */
-.workflow-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-}
 
-.workflow-table th {
-    background-color: #f8f9fa;
-    padding: 0.75rem 0.5rem;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 2px solid #e1e5e9;
-    color: #333;
-}
-
-.workflow-table td {
-    padding: 0.75rem 0.5rem;
-    border-bottom: 1px solid #f0f0f0;
-    vertical-align: top;
-}
-
-.guest-row.t14-eligible {
-    background-color: #fff3cd;
-}
-
-.guest-row.t1-eligible {
-    background-color: #f8d7da;
-}
-
-.guest-row.in-window {
-    background-color: #d1ecf1;
-}
-
-.guest-info strong {
-    color: #2c3e50;
-}
-
-.guest-details {
-    font-size: 0.75rem;
-    color: #666;
-    margin-top: 0.25rem;
-    line-height: 1.3;
-}
-
-.date-info {
-    font-weight: 600;
-}
-
-.room-info {
-    font-size: 0.75rem;
-    color: #666;
-    font-weight: normal;
-}
-
-.days-until .checked-in {
-    color: #666;
-    font-style: italic;
-}
-
-.days-until .today {
-    color: #e74c3c;
-    font-weight: bold;
-}
-
-.next-action {
-    font-size: 0.8rem;
-    color: #666;
-}
-
-/* Status Badges */
-.status-badge {
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.status-pending { background-color: #e9ecef; color: #495057; }
-.status-t14_sent { background-color: #fff3cd; color: #856404; }
-.status-t1_sent { background-color: #f8d7da; color: #721c24; }
-.status-accepted { background-color: #d4edda; color: #155724; }
-.status-declined { background-color: #f8d7da; color: #721c24; }
-.status-completed { background-color: #d4edda; color: #155724; }
-
-/* Action Buttons */
-.action-buttons {
-    display: flex;
-    gap: 0.25rem;
-}
-
-.btn-sms {
-    background-color: #28a745;
-    color: white;
-    padding: 0.4rem 0.6rem;
-    font-size: 0.75rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-sms:hover {
-    background-color: #218838;
-}
-
-.btn-view {
-    background-color: #6c757d;
-    color: white;
-    padding: 0.4rem 0.6rem;
-    font-size: 0.75rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-view:hover {
-    background-color: #5a6268;
-}
-
-/* No Guests State */
-.no-guests {
-    text-align: center;
-    padding: 3rem;
-    background-color: #f8f9fa;
-    border-radius: 6px;
-    border: 1px solid #e1e5e9;
-}
-
-.no-guests-content h4 {
-    margin: 0 0 1rem 0;
-    color: #2c3e50;
-}
-
-.no-guests-content p {
-    margin: 0 0 0.5rem 0;
-    color: #666;
-}
-
-/* SMS Modal Styles */
-.guest-summary {
-    background-color: #f8f9fa;
-    padding: 1rem;
-    border-radius: 6px;
-    margin-bottom: 1.5rem;
-    border: 1px solid #e1e5e9;
-}
-
-.sms-template {
-    margin-bottom: 1.5rem;
-}
-
-.sms-template h4 {
-    margin: 0 0 0.75rem 0;
-    color: #2c3e50;
-}
-
-.sms-preview {
-    background-color: #e3f2fd;
-    border: 1px solid #bbdefb;
-    border-radius: 6px;
-    padding: 1rem;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    color: #1565c0;
-    margin-bottom: 0.75rem;
-}
-
-.sms-details {
-    font-size: 0.8rem;
-    color: #666;
-}
-
-.sms-details p {
-    margin: 0 0 0.25rem 0;
-}
-
-.sms-options h4 {
-    margin: 0 0 0.75rem 0;
-    color: #2c3e50;
-}
-
-.response-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.75rem;
-}
-
-.response-option {
-    background-color: #f8f9fa;
-    border: 1px solid #e1e5e9;
-    border-radius: 4px;
-    padding: 0.75rem;
-    font-size: 0.8rem;
-    text-align: center;
-}
-
-.btn-sms-send {
-    background-color: #28a745;
-    color: white;
-}
-
-.btn-sms-send:hover {
-    background-color: #218838;
-}
 
 /* Error State */
 .error-state {
@@ -1348,6 +686,14 @@
         flex-direction: column;
         align-items: start;
         gap: 1rem;
+    }
+    
+    .info-cards-container {
+        gap: 0.5rem;
+    }
+    
+    .info-card {
+        padding: 1rem;
     }
     
     .summary-line {
@@ -1378,19 +724,26 @@
         padding: 0.4rem 0.5rem;
     }
     
-    .workflow-table {
-        font-size: 0.75rem;
-    }
     
-    .response-grid {
-        grid-template-columns: 1fr;
-    }
 }
 </style>
 
 <script>
-let currentBookingId = null;
-let currentSMSType = null;
+
+function toggleWorkflowProcess() {
+    const dropdown = document.getElementById('workflow-process-dropdown');
+    const icon = document.getElementById('workflow-expand-icon');
+    
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
+        icon.classList.add('rotated');
+        icon.textContent = '▲';
+    } else {
+        dropdown.style.display = 'none';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    }
+}
 
 function toggleEligibleGuests() {
     const dropdown = document.getElementById('eligible-guests-dropdown');
@@ -1407,65 +760,6 @@ function toggleEligibleGuests() {
     }
 }
 
-function toggleT14Guests() {
-    const dropdown = document.getElementById('t14-guests-dropdown');
-    const icon = document.getElementById('t14-expand-icon');
-    
-    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        dropdown.style.display = 'block';
-        icon.classList.add('rotated');
-        icon.textContent = '▲';
-    } else {
-        dropdown.style.display = 'none';
-        icon.classList.remove('rotated');
-        icon.textContent = '▼';
-    }
-}
-
-function toggleT1Guests() {
-    const dropdown = document.getElementById('t1-guests-dropdown');
-    const icon = document.getElementById('t1-expand-icon');
-    
-    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        dropdown.style.display = 'block';
-        icon.classList.add('rotated');
-        icon.textContent = '▲';
-    } else {
-        dropdown.style.display = 'none';
-        icon.classList.remove('rotated');
-        icon.textContent = '▼';
-    }
-}
-
-function toggleT14Group(groupId) {
-    const content = document.getElementById('t14-group-' + groupId);
-    const icon = document.getElementById('t14-icon-' + groupId);
-    
-    if (content.style.display === 'none') {
-        content.style.display = '';
-        icon.classList.remove('rotated');
-        icon.textContent = '▼';
-    } else {
-        content.style.display = 'none';
-        icon.classList.add('rotated');
-        icon.textContent = '▶';
-    }
-}
-
-function toggleT1Group(groupId) {
-    const content = document.getElementById('t1-group-' + groupId);
-    const icon = document.getElementById('t1-icon-' + groupId);
-    
-    if (content.style.display === 'none') {
-        content.style.display = '';
-        icon.classList.remove('rotated');
-        icon.textContent = '▼';
-    } else {
-        content.style.display = 'none';
-        icon.classList.add('rotated');
-        icon.textContent = '▶';
-    }
-}
 
 function toggleEligibleGroup(groupId) {
     const content = document.getElementById('eligible-group-' + groupId);
@@ -1482,69 +776,6 @@ function toggleEligibleGroup(groupId) {
     }
 }
 
-function sendSMSOffer(bookingId, smsType) {
-    currentBookingId = bookingId;
-    currentSMSType = smsType;
-    
-    // Get guest info from the table row
-    const row = document.querySelector(`button[onclick="sendSMSOffer('${bookingId}', '${smsType}')"]`).closest('tr');
-    const guestName = row.querySelector('.guest-info strong').textContent;
-    const bookingNumber = row.querySelector('td:nth-child(2) strong').textContent;
-    const checkInDate = row.querySelector('.date-info').firstChild.textContent.trim();
-    
-    // Update modal with guest info
-    const guestSummary = document.getElementById('sms-guest-info');
-    guestSummary.innerHTML = `
-        <h4>Guest Information</h4>
-        <p><strong>Name:</strong> ${guestName}</p>
-        <p><strong>Booking:</strong> ${bookingNumber}</p>
-        <p><strong>Check-in:</strong> ${checkInDate}</p>
-        <p><strong>SMS Type:</strong> ${smsType === 't14' ? 'T-14 Initial Offer' : 'T-1 Reminder'}</p>
-    `;
-    
-    // Show modal
-    document.getElementById('smsOfferModal').style.display = 'flex';
-}
 
-function closeSMSModal() {
-    document.getElementById('smsOfferModal').style.display = 'none';
-    currentBookingId = null;
-    currentSMSType = null;
-}
-
-function confirmSendSMS() {
-    if (!currentBookingId || !currentSMSType) {
-        alert('Error: No booking selected');
-        return;
-    }
-    
-    // In a real implementation, this would make an API call to send the SMS
-    // For now, we'll simulate the process
-    
-    const confirmMessage = `SMS offer sent to guest!\n\nBooking: ${currentBookingId}\nType: ${currentSMSType}\n\nThe guest will receive the offer and can reply:\n• "1" for Sunday night ($150)\n• "2" for late checkout ($75)\n• "STOP" to opt out\n\nResponse tracking will be updated automatically.`;
-    
-    alert(confirmMessage);
-    
-    // Close modal and refresh page to show updated status
-    closeSMSModal();
-    
-    // In a real implementation, you might update the row status without full page reload
-    setTimeout(() => {
-        location.reload();
-    }, 1000);
-}
-
-function viewGuestDetails(bookingId) {
-    // In a real implementation, this would open a detailed guest view
-    alert(`Opening detailed view for booking ${bookingId}\n\nThis would show:\n• Full booking details\n• SMS history\n• Response tracking\n• Payment status\n• Reception notes`);
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('smsOfferModal');
-    if (event.target === modal) {
-        closeSMSModal();
-    }
-});
 </script>
 {% endblock %}
