@@ -28,7 +28,8 @@
       "Bash(docker logs:*)",
       "Bash(python test:*)",
       "Bash(python:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

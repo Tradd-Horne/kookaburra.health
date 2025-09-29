@@ -65,18 +65,18 @@
         </div>
         
         <div class="finder-column">
-            <div class="finder-column-header" id="column3-header">Watched Folders</div>
+            <div class="finder-column-header" id="column3-header">Available Folders</div>
             
             <!-- Google Drive Preview (visible by default) -->
             <div id="google-drive-preview">
                 <div class="finder-preview">
                     <div class="finder-preview-info">
-                        <h3>Watched Folders</h3>
+                        <h3>Available Folders</h3>
                         <div style="margin-bottom: 1rem;">
-                            <button class="btn" onclick="openConfigureWatchModal()">+ Add New Watch</button>
+                            <button class="btn" onclick="openAddFolderModal()">+ Add Google Drive Folder</button>
                         </div>
                         <div id="watched-folders-list">
-                            <div class="loading-message">Loading watch configurations...</div>
+                            <div class="loading-message">Loading available folders...</div>
                         </div>
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e1e5e9;">
                             <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
@@ -145,12 +145,12 @@
     </div>
 </div>
 
-<!-- Configure Google Drive Watch Modal -->
-<div id="configureWatchModal" class="modal" style="display: none;">
+<!-- Add Google Drive Folder Modal -->
+<div id="addFolderModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Configure Google Drive Folder Watch</h3>
-            <span class="close" onclick="closeConfigureWatchModal()">&times;</span>
+            <h3>Add Google Drive Folder</h3>
+            <span class="close" onclick="closeAddFolderModal()">&times;</span>
         </div>
         <div class="modal-body">
             <div class="form-group">
@@ -176,13 +176,12 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeConfigureWatchModal()">Cancel</button>
+            <button class="btn btn-secondary" onclick="closeAddFolderModal()">Cancel</button>
             <button class="btn" id="validateBtn" onclick="validateFolder()">Validate Folder</button>
-            <button class="btn" id="saveBtn" onclick="saveFolderWatch()" style="display: none;">Start Watching</button>
+            <button class="btn" id="addBtn" onclick="addFolder()" style="display: none;">Add Folder</button>
         </div>
     </div>
 </div>
-
 
 <style>
 .empty-state {
@@ -473,8 +472,8 @@
 }
 
 .status-disconnected {
-    background-color: #f8d7da;
-    color: #721c24;
+    background-color: #fff3cd;
+    color: #856404;
 }
 
 .status-error {
@@ -757,7 +756,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Load Google Drive data by default on page load
-    loadWatchConfigurations();
+    loadAvailableFolders();
     loadLastImportInfo();
     loadInactiveFolders();
     
@@ -786,10 +785,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Update headers
                 column2Header.textContent = 'Google Drive';
-                column3Header.textContent = 'Watched Folders';
+                column3Header.textContent = 'Available Folders';
                 
-                // Load watch configurations and last import info
-                loadWatchConfigurations();
+                // Load available folders and last import info
+                loadAvailableFolders();
                 loadLastImportInfo();
                 loadInactiveFolders();
             } else if (category === 'workflows') {
@@ -810,69 +809,62 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Load watch configurations from API
-async function loadWatchConfigurations() {
-    const watchList = document.getElementById('watched-folders-list');
+// Load available folders for manual import
+async function loadAvailableFolders() {
+    const foldersList = document.getElementById('watched-folders-list');
     
     try {
-        watchList.innerHTML = '<div class="loading-message">Loading watch configurations...</div>';
+        foldersList.innerHTML = '<div class="loading-message">Loading available folders...</div>';
         
-        const response = await fetch('/api/google-drive/list-watches/');
+        const response = await fetch('/api/google-drive/list-all-folders/');
         const data = await response.json();
         
-        if (data.watches && data.watches.length > 0) {
+        if (data.folders && data.folders.length > 0) {
             let html = '';
             
-            data.watches.forEach(watch => {
-                const statusClass = watch.status === 'Connected' ? 'status-connected' : 
-                                  watch.status === 'Disconnected' ? 'status-disconnected' : 'status-error';
-                
-                const expirationWarning = watch.days_until_expiration <= 7 ? 'expiration-warning' : '';
+            data.folders.forEach(folder => {
+                // Determine status class based on whether there's data
+                const statusClass = folder.booking_count > 0 ? 'status-connected' : 'status-disconnected';
                 
                 html += `
                     <div class="watch-item">
                         <div class="watch-header">
                             <h4>
-                                <a href="${watch.folder_url}" target="_blank" class="folder-link">${watch.folder_name}</a>
+                                <a href="${folder.folder_url}" target="_blank" class="folder-link">${folder.folder_name}</a>
                             </h4>
-                            <span class="watch-status ${statusClass}">${watch.status}</span>
+                            <span class="watch-status ${statusClass}">${folder.status}</span>
                         </div>
                         <div class="watch-details">
-                            <div><strong>Type:</strong> ${watch.watch_type}</div>
-                            <div><strong>Files:</strong> ${watch.file_count} documents</div>
-                            <div><strong>URL:</strong> <a href="${watch.folder_url}" target="_blank" class="folder-url-link">${watch.folder_url}</a></div>
-                            <div><strong>Last Validated:</strong> ${watch.last_validated}</div>
-                            <div class="${expirationWarning}"><strong>Expires:</strong> ${watch.expiration_date} (${watch.days_until_expiration} days)</div>
-                            <div><strong>Created:</strong> ${watch.created_date}</div>
+                            <div><strong>Records:</strong> ${folder.booking_count} bookings</div>
+                            <div><strong>URL:</strong> <a href="${folder.folder_url}" target="_blank" class="folder-url-link">${folder.folder_url}</a></div>
+                            <div><strong>Last Import:</strong> ${folder.last_import}</div>
                         </div>
                         <div class="watch-actions">
-                            <a href="/dashboard/flows/watched-folders/${watch.folder_name}/" class="btn btn-view-data">View Data</a>
-                            <button class="btn btn-clear-data" onclick="clearFolderData('${watch.folder_name}')" title="Clear all imported data for this folder">Clear Data</button>
-                            <button class="btn btn-delete" onclick="deleteWatch('${watch.folder_name}')" title="Delete watch configuration">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M3 4h10l-1 10H4L3 4zM5 2h6v1H5V2zM6 6v6h1V6H6zM9 6v6h1V6H9z"/>
-                                    <path d="M2 4h12v1H2V4z"/>
-                                </svg>
-                            </button>
+                            ${folder.booking_count > 0 ? 
+                                `<a href="/dashboard/flows/watched-folders/${folder.folder_name}/" class="btn btn-view-data">View Data</a>
+                                 <button class="btn btn-clear-data" onclick="clearFolderData('${folder.folder_name}')" title="Clear all imported data for this folder">Clear Data</button>` 
+                                : 
+                                `<span style="color: #666; font-style: italic; font-size: 0.8rem;">No data imported yet</span>`
+                            }
                         </div>
                     </div>
                 `;
             });
             
-            watchList.innerHTML = html;
+            foldersList.innerHTML = html;
         } else {
-            watchList.innerHTML = `
+            foldersList.innerHTML = `
                 <div class="no-watches-compact">
-                    <p>No folders are currently being watched.</p>
+                    <p>No Google Drive folders added yet. Click "Add Google Drive Folder" above to get started.</p>
                 </div>
             `;
         }
         
     } catch (error) {
-        console.error('Failed to load watch configurations:', error);
-        watchList.innerHTML = `
+        console.error('Failed to load available folders:', error);
+        foldersList.innerHTML = `
             <div class="error-message">
-                Failed to load watch configurations. Please try again.
+                Failed to load folders. Please try again.
             </div>
         `;
     }
@@ -978,19 +970,19 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Modal functions
-function openConfigureWatchModal() {
-    document.getElementById('configureWatchModal').style.display = 'flex';
+// Add Folder Modal functions
+function openAddFolderModal() {
+    document.getElementById('addFolderModal').style.display = 'flex';
     document.getElementById('folderUrl').focus();
 }
 
-function closeConfigureWatchModal() {
-    document.getElementById('configureWatchModal').style.display = 'none';
+function closeAddFolderModal() {
+    document.getElementById('addFolderModal').style.display = 'none';
     // Reset form
     document.getElementById('folderUrl').value = '';
     document.getElementById('folderValidation').style.display = 'none';
     document.getElementById('validateBtn').style.display = 'inline-block';
-    document.getElementById('saveBtn').style.display = 'none';
+    document.getElementById('addBtn').style.display = 'none';
 }
 
 function extractFolderId(url) {
@@ -1009,15 +1001,19 @@ async function validateFolder() {
     }
     
     const folderId = extractFolderId(folderUrl);
-    
-    // Show loading
-    document.getElementById('folderValidation').style.display = 'block';
-    document.getElementById('loadingSpinner').style.display = 'block';
-    document.getElementById('folderInfo').style.display = 'none';
-    document.getElementById('folderError').style.display = 'none';
+    const validateBtn = document.getElementById('validateBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const folderInfo = document.getElementById('folderInfo');
+    const folderError = document.getElementById('folderError');
     
     try {
-        // Call backend API to validate folder
+        // Show loading state
+        validateBtn.style.display = 'none';
+        loadingSpinner.style.display = 'block';
+        document.getElementById('folderValidation').style.display = 'block';
+        folderInfo.style.display = 'none';
+        folderError.style.display = 'none';
+        
         const response = await fetch('/api/google-drive/validate-folder/', {
             method: 'POST',
             headers: {
@@ -1029,91 +1025,47 @@ async function validateFolder() {
         
         const data = await response.json();
         
-        document.getElementById('loadingSpinner').style.display = 'none';
+        loadingSpinner.style.display = 'none';
         
-        if (data.status === 'success' || data.success) {
-            // Show folder info - handle both response formats
-            const folder = data.folder || data;
-            document.getElementById('folderName').textContent = folder.folder_name || folder.name || 'Unknown';
-            document.getElementById('folderFileCount').textContent = (folder.file_count || 0) + ' files';
-            document.getElementById('folderOwner').textContent = folder.owner || 'Unknown';
-            document.getElementById('folderLastModified').textContent = folder.last_modified || 'Unknown';
+        if (data.status === 'success') {
+            // Show folder info
+            document.getElementById('folderName').textContent = data.folder_name;
+            document.getElementById('folderFileCount').textContent = data.file_count;
+            document.getElementById('folderOwner').textContent = data.owner;
+            document.getElementById('folderLastModified').textContent = new Date(data.last_modified).toLocaleString();
             
-            document.getElementById('folderInfo').style.display = 'block';
-            document.getElementById('validateBtn').style.display = 'none';
-            document.getElementById('saveBtn').style.display = 'inline-block';
+            folderInfo.style.display = 'block';
+            document.getElementById('addBtn').style.display = 'inline-block';
         } else {
-            // Show error
-            document.getElementById('folderError').textContent = data.error || 'Unable to access folder';
-            document.getElementById('folderError').style.display = 'block';
+            folderError.textContent = data.error || 'Unable to access folder';
+            folderError.style.display = 'block';
+            validateBtn.style.display = 'inline-block';
         }
+        
     } catch (error) {
-        document.getElementById('loadingSpinner').style.display = 'none';
-        document.getElementById('folderError').textContent = 'Network error. Please try again.';
-        document.getElementById('folderError').style.display = 'block';
+        console.error('Validation error:', error);
+        loadingSpinner.style.display = 'none';
+        folderError.textContent = 'Network error. Please try again.';
+        folderError.style.display = 'block';
+        validateBtn.style.display = 'inline-block';
     }
 }
 
-async function saveFolderWatch() {
+async function addFolder() {
     const folderUrl = document.getElementById('folderUrl').value.trim();
     const folderId = extractFolderId(folderUrl);
     
     try {
-        const response = await fetch('/api/google-drive/setup-watch/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ folder_id: folderId })
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            alert('Folder watch configured successfully!');
-            closeConfigureWatchModal();
-            // Refresh the page or update the UI to show the new watch
-            location.reload();
-        } else {
-            alert('Failed to configure folder watch: ' + (data.error || 'Unknown error'));
-        }
-    } catch (error) {
-        alert('Network error. Please try again.');
-    }
-}
-
-
-// Delete Watch Configuration
-async function deleteWatch(folderName) {
-    if (!confirm(`Are you sure you want to delete the watch configuration for "${folderName}"? This will stop monitoring this folder.`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/api/google-drive/delete-watch/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ folder_name: folderName })
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            alert('Watch configuration deleted successfully!');
-            // Refresh the watch configurations list and inactive folders
-            loadWatchConfigurations();
-            loadInactiveFolders();
-        } else {
-            alert('Failed to delete watch configuration: ' + (data.error || 'Unknown error'));
-        }
+        // The validate-folder endpoint already adds the folder to the database
+        // So we just need to close the modal and refresh the list
+        alert('Folder added successfully! You can now import data from this folder using the "Import Bookings" button.');
+        closeAddFolderModal();
+        // Refresh the available folders list
+        loadAvailableFolders();
         
     } catch (error) {
-        console.error('Delete error:', error);
-        alert('Network error during deletion. Please try again.');
+        console.error('Add folder error:', error);
+        alert('Failed to add folder. Please try again.');
     }
 }
 
@@ -1137,8 +1089,8 @@ async function clearFolderData(folderName) {
         
         if (data.status === 'success') {
             alert(`Successfully cleared all data for "${folderName}"!\n\nDeleted:\n- ${data.deleted_counts.bookings} bookings\n- ${data.deleted_counts.ingestion_runs} import runs\n- ${data.deleted_counts.processed_files} processed files`);
-            // Refresh the watch configurations list and inactive folders
-            loadWatchConfigurations();
+            // Refresh the available folders list and inactive folders
+            loadAvailableFolders();
             loadInactiveFolders();
         } else {
             alert('Failed to clear folder data: ' + (data.error || 'Unknown error'));
@@ -1154,7 +1106,7 @@ async function clearFolderData(folderName) {
 async function importBookingData() {
     const importBtn = document.querySelector('.btn-import');
     
-    if (!confirm('Import booking data from Google Sheets in all watched folders? This will merge with existing data.')) {
+    if (!confirm('Import booking data from Google Sheets in all available folders? This will merge with existing data.')) {
         return;
     }
     
@@ -1227,28 +1179,28 @@ async function loadAvailableDatabases() {
     const databaseList = document.getElementById('database-list');
     
     try {
-        // Use the existing watch list API to get folders with data
-        const response = await fetch('/api/google-drive/list-watches/');
+        // Use the list inactive folders API to get folders with data
+        const response = await fetch('/api/google-drive/list-inactive-folders/');
         const data = await response.json();
         
-        if (data.watches && data.watches.length > 0) {
+        if (data.inactive_folders && data.inactive_folders.length > 0) {
             let html = '';
             
-            for (const watch of data.watches) {
+            for (const folder of data.inactive_folders) {
                 // Get booking count for this folder
                 try {
-                    const folderResponse = await fetch(`/api/google-sheets/folder-stats/?folder_name=${encodeURIComponent(watch.folder_name)}`);
+                    const folderResponse = await fetch(`/api/google-sheets/folder-stats/?folder_name=${encodeURIComponent(folder.folder_name)}`);
                     const folderData = await folderResponse.json();
-                    const bookingCount = folderData.booking_count || 0;
+                    const bookingCount = folderData.booking_count || folder.booking_count || 0;
                     
                     html += `
                         <div class="database-item">
                             <div class="database-info">
-                                <h4>${watch.folder_name}</h4>
+                                <h4>${folder.folder_name}</h4>
                                 <p>Google Drive Folder Database</p>
                                 <div class="database-stats">${bookingCount} booking records available</div>
                             </div>
-                            <button class="btn-select-db" onclick="connectToDatabase('${watch.folder_name}')">
+                            <button class="btn-select-db" onclick="connectToDatabase('${folder.folder_name}')">
                                 Connect
                             </button>
                         </div>
@@ -1258,11 +1210,11 @@ async function loadAvailableDatabases() {
                     html += `
                         <div class="database-item">
                             <div class="database-info">
-                                <h4>${watch.folder_name}</h4>
+                                <h4>${folder.folder_name}</h4>
                                 <p>Google Drive Folder Database</p>
-                                <div class="database-stats">Database available</div>
+                                <div class="database-stats">${folder.booking_count || 0} booking records available</div>
                             </div>
-                            <button class="btn-select-db" onclick="connectToDatabase('${watch.folder_name}')">
+                            <button class="btn-select-db" onclick="connectToDatabase('${folder.folder_name}')">
                                 Connect
                             </button>
                         </div>
@@ -1275,7 +1227,7 @@ async function loadAvailableDatabases() {
             databaseList.innerHTML = `
                 <div class="no-data" style="text-align: center; padding: 2rem; color: #666;">
                     <p>No databases available.</p>
-                    <p>Set up a Google Drive folder watch first to create a database.</p>
+                    <p>Import some data first to create a database.</p>
                 </div>
             `;
         }
@@ -1375,11 +1327,11 @@ function openWorkflow() {
 
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
-    const configModal = document.getElementById('configureWatchModal');
+    const addFolderModal = document.getElementById('addFolderModal');
     const connectModal = document.getElementById('connectDatabaseModal');
     
-    if (event.target === configModal) {
-        closeConfigureWatchModal();
+    if (event.target === addFolderModal) {
+        closeAddFolderModal();
     } else if (event.target === connectModal) {
         closeConnectDatabaseModal();
     }

@@ -21,9 +21,7 @@ urlpatterns = [
     
     # Google Drive endpoints
     path('google-drive/validate-folder/', views.validate_google_drive_folder, name='validate_google_drive_folder'),
-    path('google-drive/setup-watch/', views.setup_google_drive_watch, name='setup_google_drive_watch'),
-    path('google-drive/list-watches/', views.list_google_drive_watches, name='list_google_drive_watches'),
-    path('google-drive/delete-watch/', views.delete_google_drive_watch, name='delete_google_drive_watch'),
+    path('google-drive/list-all-folders/', views.list_all_folders, name='list_all_folders'),
     path('google-drive/list-inactive-folders/', views.list_inactive_folders_with_data, name='list_inactive_folders_with_data'),
     
     # Google Sheets endpoints
