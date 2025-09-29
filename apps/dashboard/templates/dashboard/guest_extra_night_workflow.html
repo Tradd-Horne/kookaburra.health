@@ -50,7 +50,7 @@
                 <span class="expand-icon" id="expand-icon">▼</span>
             </div>
             <div class="eligible-guests-dropdown" id="eligible-guests-dropdown" style="display: none;">
-                {% if workflow_guests %}
+                {% if eligible_grouped_sorted %}
                     <div class="guests-table-container">
                         <table class="guests-table">
                             <thead>
@@ -61,18 +61,68 @@
                                     <th>Check-out</th>
                                     <th>Room</th>
                                     <th>Rate</th>
+                                    <th>T-14 Date</th>
+                                    <th>T-1 Date</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for guest in workflow_guests %}
-                                <tr>
-                                    <td><strong>{{ guest.booking.first_name }} {{ guest.booking.surname }}</strong></td>
-                                    <td>{{ guest.booking.booking_number }}</td>
-                                    <td>{{ guest.booking.arrive_date|date:"D d-m-Y" }}</td>
-                                    <td>{{ guest.booking.depart_date|date:"D d-m-Y" }}</td>
-                                    <td>{{ guest.booking.room_number|default:"-" }} ({{ guest.booking.room_type|default:"Standard" }})</td>
-                                    <td>{{ guest.booking.rate|default:"Standard Rate" }}</td>
-                                </tr>
+                                {% for checkout_group in eligible_grouped_sorted %}
+                                    <!-- Group header row (clickable accordion) -->
+                                    <tr class="group-header accordion-header" onclick="toggleEligibleGroup('{{ forloop.counter }}')">
+                                        <td colspan="8">
+                                            <span class="accordion-icon" id="eligible-icon-{{ forloop.counter }}">▼</span>
+                                            <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
+                                        </td>
+                                    </tr>
+                                    <!-- Guest rows for this group (collapsible) -->
+                                    <tbody id="eligible-group-{{ forloop.counter }}" class="accordion-content">
+                                    {% for guest in checkout_group.guests %}
+                                    <tr>
+                                        <td><strong>{{ guest.booking.first_name }} {{ guest.booking.surname }}</strong></td>
+                                        <td>{{ guest.booking.booking_number }}</td>
+                                        <td>{{ guest.booking.arrive_date|date:"D d-m-Y" }}</td>
+                                        <td>{{ guest.booking.depart_date|date:"D d-m-Y" }}</td>
+                                        <td>{{ guest.booking.room_number|default:"-" }} ({{ guest.booking.room_type|default:"Standard" }})</td>
+                                        <td>{{ guest.booking.rate|default:"Standard Rate" }}</td>
+                                        <!-- T-14 Date with status -->
+                                        <td>
+                                            {{ guest.t14_date|date:"D d-m-Y" }}
+                                            {% if guest.t14_status == 'ready' %}
+                                                <br><span class="countdown-badge ready">Send Today</span>
+                                            {% elif guest.t14_status == 'countdown' %}
+                                                <br><span class="countdown-badge countdown">
+                                                    {% if guest.t14_days > 0 %}
+                                                        {{ guest.t14_days }}d
+                                                        {% if guest.t14_hours > 0 %} {{ guest.t14_hours }}h{% endif %}
+                                                    {% else %}
+                                                        {{ guest.t14_hours }}h
+                                                    {% endif %}
+                                                </span>
+                                            {% elif guest.t14_status == 'past' %}
+                                                <br><span class="countdown-badge past">T-14 Passed</span>
+                                            {% endif %}
+                                        </td>
+                                        <!-- T-1 Date with status -->
+                                        <td>
+                                            {{ guest.t1_date|date:"D d-m-Y" }}
+                                            {% if guest.t1_status == 'ready' %}
+                                                <br><span class="countdown-badge t1-ready">Send Today</span>
+                                            {% elif guest.t1_status == 'countdown' %}
+                                                <br><span class="countdown-badge t1-countdown">
+                                                    {% if guest.t1_days > 0 %}
+                                                        {{ guest.t1_days }}d
+                                                        {% if guest.t1_hours > 0 %} {{ guest.t1_hours }}h{% endif %}
+                                                    {% else %}
+                                                        {{ guest.t1_hours }}h
+                                                    {% endif %}
+                                                </span>
+                                            {% elif guest.t1_status == 'past' %}
+                                                <br><span class="countdown-badge t1-past">Checked In</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    </tbody>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -108,13 +158,15 @@
                             </thead>
                             <tbody>
                                 {% for checkout_group in t14_grouped_sorted %}
-                                    <!-- Group header row -->
-                                    <tr class="group-header">
+                                    <!-- Group header row (clickable accordion) -->
+                                    <tr class="group-header accordion-header" onclick="toggleT14Group('{{ forloop.counter }}')">
                                         <td colspan="10">
+                                            <span class="accordion-icon" id="t14-icon-{{ forloop.counter }}">▼</span>
                                             <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
                                         </td>
                                     </tr>
-                                    <!-- Guest rows for this group -->
+                                    <!-- Guest rows for this group (collapsible) -->
+                                    <tbody id="t14-group-{{ forloop.counter }}" class="accordion-content">
                                     {% for t14_data in checkout_group.guests %}
                                         <tr class="t14-row status-{{ t14_data.status }}">
                                             <td><strong>{{ t14_data.guest.booking.first_name }} {{ t14_data.guest.booking.surname }}</strong></td>
@@ -166,6 +218,7 @@
                                             </td>
                                         </tr>
                                     {% endfor %}
+                                    </tbody>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -201,13 +254,15 @@
                             </thead>
                             <tbody>
                                 {% for checkout_group in t1_grouped_sorted %}
-                                    <!-- Group header row -->
-                                    <tr class="group-header">
+                                    <!-- Group header row (clickable accordion) -->
+                                    <tr class="group-header accordion-header" onclick="toggleT1Group('{{ forloop.counter }}')">
                                         <td colspan="10">
+                                            <span class="accordion-icon" id="t1-icon-{{ forloop.counter }}">▼</span>
                                             <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
                                         </td>
                                     </tr>
-                                    <!-- Guest rows for this group -->
+                                    <!-- Guest rows for this group (collapsible) -->
+                                    <tbody id="t1-group-{{ forloop.counter }}" class="accordion-content">
                                     {% for t1_data in checkout_group.guests %}
                                         <tr class="t1-row status-{{ t1_data.status }}">
                                             <td><strong>{{ t1_data.guest.booking.first_name }} {{ t1_data.guest.booking.surname }}</strong></td>
@@ -259,6 +314,7 @@
                                             </td>
                                         </tr>
                                     {% endfor %}
+                                    </tbody>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -751,6 +807,37 @@
 
 .group-header:hover {
     background-color: #e9ecef !important;
+}
+
+/* Accordion styling */
+.accordion-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.accordion-header:hover {
+    background-color: #dee2e6 !important;
+}
+
+.accordion-icon {
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: transform 0.3s ease;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.accordion-icon.rotated {
+    transform: rotate(-90deg);
+}
+
+.accordion-content {
+    transition: opacity 0.3s ease;
+}
+
+.accordion-content.hidden {
+    display: none;
 }
 
 .guest-summary {
@@ -1347,6 +1434,51 @@ function toggleT1Guests() {
         dropdown.style.display = 'none';
         icon.classList.remove('rotated');
         icon.textContent = '▼';
+    }
+}
+
+function toggleT14Group(groupId) {
+    const content = document.getElementById('t14-group-' + groupId);
+    const icon = document.getElementById('t14-icon-' + groupId);
+    
+    if (content.style.display === 'none') {
+        content.style.display = '';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.classList.add('rotated');
+        icon.textContent = '▶';
+    }
+}
+
+function toggleT1Group(groupId) {
+    const content = document.getElementById('t1-group-' + groupId);
+    const icon = document.getElementById('t1-icon-' + groupId);
+    
+    if (content.style.display === 'none') {
+        content.style.display = '';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.classList.add('rotated');
+        icon.textContent = '▶';
+    }
+}
+
+function toggleEligibleGroup(groupId) {
+    const content = document.getElementById('eligible-group-' + groupId);
+    const icon = document.getElementById('eligible-icon-' + groupId);
+    
+    if (content.style.display === 'none') {
+        content.style.display = '';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.classList.add('rotated');
+        icon.textContent = '▶';
     }
 }
 
