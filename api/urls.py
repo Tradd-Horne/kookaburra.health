@@ -30,6 +30,7 @@ urlpatterns = [
     path('google-sheets/import-bookings/', views.import_booking_data, name='import_booking_data'),
     path('google-sheets/last-import/', views.get_last_import_info, name='get_last_import_info'),
     path('google-sheets/folder-stats/', views.get_folder_statistics, name='get_folder_statistics'),
+    path('google-sheets/clear-folder-data/', views.clear_folder_data, name='clear_folder_data'),
     
     # Google OAuth endpoints
     path('google-auth/start/', google_auth_views.start_google_auth, name='start_google_auth'),

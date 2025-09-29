@@ -25,7 +25,10 @@
       "Bash(sqlite3:*)",
       "Bash(env)",
       "Bash(docker exec:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "Bash(python test:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

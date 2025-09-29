@@ -243,14 +243,16 @@ class BookingIngestionService:
             # Process each booking
             for booking_data in bookings:
                 try:
-                    # Store raw row for audit
+                    # Store raw row for audit - use get_or_create to handle re-imports
                     row_hash = self.calculate_row_hash(booking_data)
-                    RawRow.objects.create(
+                    raw_row, created = RawRow.objects.get_or_create(
                         file_id=file_info['file_id'],
                         row_index=booking_data.get('_row_index', 0),
-                        row_hash=row_hash,
-                        raw_data=booking_data.get('_raw_data', []),
-                        ingestion_run=ingestion_run
+                        defaults={
+                            'row_hash': row_hash,
+                            'raw_data': booking_data.get('_raw_data', []),
+                            'ingestion_run': ingestion_run
+                        }
                     )
                     
                     # Process booking with merge logic
@@ -369,9 +371,12 @@ class BookingIngestionService:
                     
                 except Exception as e:
                     results['files_failed'] += 1
+                    error_msg = str(e)
+                    print(f"ERROR processing {file_info['filename']}: {error_msg}")
                     results['errors'].append({
                         'filename': file_info['filename'],
-                        'error': str(e)
+                        'file_id': file_info.get('file_id', 'unknown'),
+                        'error': error_msg
                     })
                     
             return results
@@ -386,10 +391,12 @@ class BookingIngestionService:
         """
         Simple wrapper for polling command - ingest file by ID.
         Returns status dict instead of IngestionRun object.
+        
+        In multi-user setup, processes the file for ALL users watching this folder.
         """
         try:
-            # Get folder object
-            folder = GoogleDriveFolder.objects.get(folder_id=folder_id)
+            # Get all folder objects for this folder_id (one per user)
+            folders = GoogleDriveFolder.objects.filter(folder_id=folder_id, is_active=True)
             
             # Get file info from Google Drive
             file_metadata = self.drive_service.get_file_metadata(file_id)
@@ -408,18 +415,50 @@ class BookingIngestionService:
                 ),
             }
             
-            # Run ingestion
-            ingestion_run = self.ingest_file(folder, file_info)
-            
-            return {
+            # Process the file for each user watching this folder
+            results = {
                 'status': 'success',
-                'ingestion_run_id': ingestion_run.id,
-                'rows_processed': ingestion_run.rows_processed,
-                'rows_inserted': ingestion_run.rows_inserted,
-                'rows_quarantined': ingestion_run.rows_quarantined,
+                'users_processed': 0,
+                'total_rows_inserted': 0,
+                'total_rows_updated': 0,
+                'total_rows_quarantined': 0,
+                'user_results': []
             }
             
-        except GoogleDriveFolder.DoesNotExist:
-            return {'status': 'failed', 'error': 'Folder not found'}
+            for folder in folders:
+                try:
+                    # Run ingestion for this user's folder
+                    ingestion_run = self.ingest_file(folder, file_info)
+                    
+                    results['users_processed'] += 1
+                    results['total_rows_inserted'] += ingestion_run.rows_inserted
+                    results['total_rows_updated'] += ingestion_run.rows_updated
+                    results['total_rows_quarantined'] += ingestion_run.rows_quarantined
+                    
+                    results['user_results'].append({
+                        'user_id': folder.user_id,
+                        'username': folder.user.username,
+                        'ingestion_run_id': ingestion_run.id,
+                        'rows_processed': ingestion_run.rows_processed,
+                        'rows_inserted': ingestion_run.rows_inserted,
+                        'rows_updated': ingestion_run.rows_updated,
+                        'rows_quarantined': ingestion_run.rows_quarantined,
+                        'status': ingestion_run.status
+                    })
+                    
+                except Exception as e:
+                    # Log error for this user but continue with others
+                    results['user_results'].append({
+                        'user_id': folder.user_id,
+                        'username': folder.user.username,
+                        'error': str(e),
+                        'status': 'failed'
+                    })
+            
+            if results['users_processed'] == 0:
+                return {'status': 'failed', 'error': 'No active folders found for this folder_id'}
+                
+            return results
+            
         except Exception as e:
             return {'status': 'failed', 'error': str(e)}

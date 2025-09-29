@@ -616,9 +616,9 @@ def list_inactive_folders_with_data(request):
         # Get all folders that have bookings but no active watch config
         from .models import Booking
         
-        # Get folders with booking data
+        # Get folders with booking data through ingestion runs
         folders_with_data = GoogleDriveFolder.objects.filter(
-            bookings__user=request.user
+            ingestion_runs__bookings__user=request.user
         ).distinct()
         
         # Get currently active watch folders
@@ -634,17 +634,17 @@ def list_inactive_folders_with_data(request):
         
         inactive_data = []
         for folder in inactive_folders:
-            # Get booking count for this folder
+            # Get booking count for this folder through ingestion runs
             booking_count = Booking.objects.filter(
                 user=request.user,
-                folder_name=folder.folder_name
+                ingestion_run__folder=folder
             ).count()
             
             if booking_count > 0:
                 # Get last import date
                 last_booking = Booking.objects.filter(
                     user=request.user,
-                    folder_name=folder.folder_name
+                    ingestion_run__folder=folder
                 ).order_by('-created_at').first()
                 
                 last_import_qld = last_booking.created_at.astimezone(qld_tz).strftime('%d-%m-%Y %I:%M:%S %p %Z') if last_booking else 'Unknown'
@@ -950,6 +950,138 @@ def get_last_import_info(request):
     },
     tags=["Google Sheets"]
 )
+@extend_schema(
+    summary="Clear Folder Data",
+    description="Delete all imported booking data for a specific Google Drive folder",
+    request={
+        "application/json": {
+            "type": "object",
+            "properties": {
+                "folder_name": {
+                    "type": "string",
+                    "description": "Name of the folder to clear data for",
+                    "example": "SALT-DATA"
+                }
+            },
+            "required": ["folder_name"]
+        }
+    },
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "example": "success"},
+                "message": {"type": "string", "example": "Data cleared successfully"},
+                "deleted_counts": {
+                    "type": "object",
+                    "properties": {
+                        "bookings": {"type": "integer"},
+                        "ingestion_runs": {"type": "integer"},
+                        "processed_files": {"type": "integer"},
+                        "raw_rows": {"type": "integer"},
+                        "quarantined_rows": {"type": "integer"}
+                    }
+                }
+            }
+        },
+        400: {
+            "type": "object",
+            "properties": {
+                "error": {"type": "string", "example": "folder_name is required"}
+            }
+        },
+        404: {
+            "type": "object",
+            "properties": {
+                "error": {"type": "string", "example": "Folder not found"}
+            }
+        },
+        401: {
+            "type": "object",
+            "properties": {
+                "detail": {"type": "string"}
+            }
+        }
+    },
+    tags=["Google Drive"]
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def clear_folder_data(request):
+    """
+    Clear all imported booking data for a specific Google Drive folder.
+    
+    This will delete all bookings, ingestion runs, processed files, 
+    raw rows, and quarantined rows for the specified folder.
+    
+    Requires authentication.
+    """
+    folder_name = request.data.get('folder_name')
+    
+    if not folder_name:
+        return Response(
+            {"error": "folder_name is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        from .models import Booking, IngestionRun, ProcessedFile, RawRow, QuarantinedRow
+        from django.db import transaction
+        
+        # Get the folder for the current user
+        folder = GoogleDriveFolder.objects.filter(
+            folder_name=folder_name,
+            user=request.user,
+            is_active=True
+        ).first()
+        
+        if not folder:
+            return Response(
+                {"error": "Folder not found or not accessible"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Count what we're about to delete
+        bookings_count = Booking.objects.filter(user=request.user, ingestion_run__folder=folder).count()
+        ingestion_runs_count = IngestionRun.objects.filter(folder=folder).count()
+        processed_files_count = ProcessedFile.objects.filter(folder=folder).count()
+        raw_rows_count = RawRow.objects.filter(ingestion_run__folder=folder).count()
+        quarantined_rows_count = QuarantinedRow.objects.filter(ingestion_run__folder=folder).count()
+        
+        # Delete all related data in the correct order
+        with transaction.atomic():
+            # Delete bookings for this user and folder
+            Booking.objects.filter(user=request.user, ingestion_run__folder=folder).delete()
+            
+            # Delete raw rows and quarantined rows (through ingestion runs)
+            RawRow.objects.filter(ingestion_run__folder=folder).delete()
+            QuarantinedRow.objects.filter(ingestion_run__folder=folder).delete()
+            
+            # Delete processed files
+            ProcessedFile.objects.filter(folder=folder).delete()
+            
+            # Delete ingestion runs
+            IngestionRun.objects.filter(folder=folder).delete()
+        
+        return Response({
+            "status": "success",
+            "message": f"All imported data cleared for folder '{folder_name}'",
+            "deleted_counts": {
+                "bookings": bookings_count,
+                "ingestion_runs": ingestion_runs_count,
+                "processed_files": processed_files_count,
+                "raw_rows": raw_rows_count,
+                "quarantined_rows": quarantined_rows_count
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to clear data: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_folder_statistics(request):

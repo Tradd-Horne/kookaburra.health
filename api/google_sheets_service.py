@@ -149,32 +149,50 @@ class GoogleSheetsService:
         return str_value
     
     def parse_date(self, value: Any) -> Optional[date]:
-        """Parse date string or Excel serial number to date object."""
+        """Parse date string or Excel serial number to date object with DD/MM/YYYY support."""
         if not value or value == '#ERROR!':
             return None
             
         try:
-            # Handle Excel serial date numbers (e.g., 45726 = Sep 19, 2025)
+            # Handle Excel serial date numbers with Australian DD/MM/YYYY interpretation
             if isinstance(value, (int, float)) and value > 10000:
-                # Excel epoch starts on Jan 1, 1900, but has a leap year bug
-                # So we use Jan 1, 1900 as day 1 and adjust
+                # Standard Excel serial number parsing
                 excel_epoch = date(1900, 1, 1)
-                # Excel incorrectly treats 1900 as a leap year, so subtract 2 days
                 delta_days = int(value) - 2
-                return excel_epoch + timedelta(days=delta_days)
+                parsed_date = excel_epoch + timedelta(days=delta_days)
+                
+                # For Australian format, assume Google Sheets interpreted DD/MM input as MM/DD
+                # Only swap if both month and day are <= 12 (ambiguous case) and they're different
+                if (parsed_date.month <= 12 and parsed_date.day <= 12 and 
+                    parsed_date.month != parsed_date.day):
+                    try:
+                        # Swap month and day to convert MM/DD back to DD/MM
+                        swapped_date = date(parsed_date.year, parsed_date.day, parsed_date.month)
+                        return swapped_date
+                    except ValueError:
+                        # If swap creates invalid date, use original
+                        pass
+                
+                return parsed_date
+            
+            # Also handle string representations of Excel serial numbers
+            elif isinstance(value, str) and value.strip().isdigit():
+                numeric_value = int(value.strip())
+                if numeric_value > 10000:
+                    return self.parse_date(numeric_value)
             
             # Convert to string for text parsing
             value_str = str(value).strip()
             
-            # Handle DD/MM/YYYY format (Australian)
+            # Handle DD/MM/YYYY format (Australian) - explicit text format
             if '/' in value_str:
                 parts = value_str.split('/')
                 if len(parts) == 3:
-                    # Assume DD/MM/YYYY
+                    # Assume DD/MM/YYYY for Australian format
                     day, month, year = parts
                     return date(int(year), int(month), int(day))
             
-            # Use dateutil parser for other formats
+            # Use dateutil parser for other formats with DD/MM preference
             parsed = parse_date(value_str, dayfirst=True)
             return parsed.date() if parsed else None
             

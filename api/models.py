@@ -200,7 +200,6 @@ class ProcessedFile(models.Model):
     """
     file_id = models.CharField(
         max_length=255,
-        unique=True,
         help_text="Google Drive file ID"
     )
     folder = models.ForeignKey(
@@ -221,6 +220,7 @@ class ProcessedFile(models.Model):
         verbose_name = 'Processed File'
         verbose_name_plural = 'Processed Files'
         ordering = ['-processed_at']
+        unique_together = ['file_id', 'folder']
 
     def __str__(self):
         return f"Processed: {self.filename}"
