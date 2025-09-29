@@ -45,7 +45,7 @@
     <div class="workflow-summary">
         <div class="summary-lines">
             <div class="summary-line expandable" onclick="toggleEligibleGuests()">
-                <span class="summary-label">Total Eligible Guests (Friday-Sunday bookings):</span>
+                <span class="summary-label">Total Eligible Guests (Sunday checkout, >2 nights):</span>
                 <span class="summary-number">{{ summary.total_eligible }}</span>
                 <span class="expand-icon" id="expand-icon">▼</span>
             </div>
@@ -83,13 +83,191 @@
                     </div>
                 {% endif %}
             </div>
-            <div class="summary-line">
+            <div class="summary-line expandable" onclick="toggleT14Guests()">
                 <span class="summary-label">T-14 Actions (Ready for SMS offers):</span>
                 <span class="summary-number pending">{{ summary.pending_t14 }}</span>
+                <span class="expand-icon" id="t14-expand-icon">▼</span>
             </div>
-            <div class="summary-line">
+            <div class="t14-guests-dropdown" id="t14-guests-dropdown" style="display: none;">
+                {% if all_t14_guests %}
+                    <div class="t14-guests-table-container">
+                        <table class="t14-guests-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Booking #</th>
+                                    <th>Check-in</th>
+                                    <th>Check-out</th>
+                                    <th>Room</th>
+                                    <th>Rate</th>
+                                    <th>T-14 Date</th>
+                                    <th>SMS Countdown</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for checkout_group in t14_grouped_sorted %}
+                                    <!-- Group header row -->
+                                    <tr class="group-header">
+                                        <td colspan="10">
+                                            <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
+                                        </td>
+                                    </tr>
+                                    <!-- Guest rows for this group -->
+                                    {% for t14_data in checkout_group.guests %}
+                                        <tr class="t14-row status-{{ t14_data.status }}">
+                                            <td><strong>{{ t14_data.guest.booking.first_name }} {{ t14_data.guest.booking.surname }}</strong></td>
+                                            <td>{{ t14_data.guest.booking.booking_number }}</td>
+                                            <td>{{ t14_data.guest.booking.arrive_date|date:"D d-m-Y" }}</td>
+                                            <td>{{ t14_data.guest.booking.depart_date|date:"D d-m-Y" }}</td>
+                                            <td>{{ t14_data.guest.booking.room_number|default:"-" }} ({{ t14_data.guest.booking.room_type|default:"Standard" }})</td>
+                                            <td>{{ t14_data.guest.booking.rate|default:"Standard Rate" }}</td>
+                                            <td>{{ t14_data.t14_date|date:"D d-m-Y" }}</td>
+                                            <td>
+                                                {% if t14_data.status == 'ready' %}
+                                                    <span class="countdown-badge ready">Send Today</span>
+                                                {% elif t14_data.status == 'countdown' %}
+                                                    <span class="countdown-badge countdown">
+                                                        {% if t14_data.days_to_t14 > 0 %}
+                                                            {{ t14_data.days_to_t14 }}d
+                                                            {% if t14_data.hours_to_t14 > 0 %} {{ t14_data.hours_to_t14 }}h{% endif %}
+                                                        {% else %}
+                                                            {{ t14_data.hours_to_t14 }}h
+                                                        {% endif %}
+                                                    </span>
+                                                {% elif t14_data.status == 'past' %}
+                                                    <span class="countdown-badge past">T-14 Passed</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if t14_data.status == 'ready' %}
+                                                    <span class="status-indicator ready">🟢 Ready</span>
+                                                {% elif t14_data.status == 'countdown' %}
+                                                    <span class="status-indicator countdown">⏳ Waiting</span>
+                                                {% elif t14_data.status == 'past' %}
+                                                    <span class="status-indicator past">⚠️ Past</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if t14_data.status == 'ready' %}
+                                                    <button class="btn-table-sms" onclick="sendSMSOffer('{{ t14_data.guest.booking.id }}', 't14')">
+                                                        📱 SMS
+                                                    </button>
+                                                {% elif t14_data.status == 'countdown' %}
+                                                    <button class="btn-table-view" onclick="viewGuestDetails('{{ t14_data.guest.booking.id }}')">
+                                                        👁️ View
+                                                    </button>
+                                                {% elif t14_data.status == 'past' %}
+                                                    <button class="btn-table-sms" onclick="sendSMSOffer('{{ t14_data.guest.booking.id }}', 't1')">
+                                                        📱 T-1
+                                                    </button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="no-t14-message">
+                        No eligible guests found for T-14 SMS workflow.
+                    </div>
+                {% endif %}
+            </div>
+            <div class="summary-line expandable" onclick="toggleT1Guests()">
                 <span class="summary-label">T-1 Actions (Final reminders):</span>
                 <span class="summary-number urgent">{{ summary.pending_t1 }}</span>
+                <span class="expand-icon" id="t1-expand-icon">▼</span>
+            </div>
+            <div class="t1-guests-dropdown" id="t1-guests-dropdown" style="display: none;">
+                {% if all_t1_guests %}
+                    <div class="t1-guests-table-container">
+                        <table class="t1-guests-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Booking #</th>
+                                    <th>Check-in</th>
+                                    <th>Check-out</th>
+                                    <th>Room</th>
+                                    <th>Rate</th>
+                                    <th>T-1 Date</th>
+                                    <th>SMS Countdown</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for checkout_group in t1_grouped_sorted %}
+                                    <!-- Group header row -->
+                                    <tr class="group-header">
+                                        <td colspan="10">
+                                            <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
+                                        </td>
+                                    </tr>
+                                    <!-- Guest rows for this group -->
+                                    {% for t1_data in checkout_group.guests %}
+                                        <tr class="t1-row status-{{ t1_data.status }}">
+                                            <td><strong>{{ t1_data.guest.booking.first_name }} {{ t1_data.guest.booking.surname }}</strong></td>
+                                            <td>{{ t1_data.guest.booking.booking_number }}</td>
+                                            <td>{{ t1_data.guest.booking.arrive_date|date:"D d-m-Y" }}</td>
+                                            <td>{{ t1_data.guest.booking.depart_date|date:"D d-m-Y" }}</td>
+                                            <td>{{ t1_data.guest.booking.room_number|default:"-" }} ({{ t1_data.guest.booking.room_type|default:"Standard" }})</td>
+                                            <td>{{ t1_data.guest.booking.rate|default:"Standard Rate" }}</td>
+                                            <td>{{ t1_data.t1_date|date:"D d-m-Y" }}</td>
+                                            <td>
+                                                {% if t1_data.status == 'ready' %}
+                                                    <span class="countdown-badge t1-ready">Send Today</span>
+                                                {% elif t1_data.status == 'countdown' %}
+                                                    <span class="countdown-badge t1-countdown">
+                                                        {% if t1_data.days_to_t1 > 0 %}
+                                                            {{ t1_data.days_to_t1 }}d
+                                                            {% if t1_data.hours_to_t1 > 0 %} {{ t1_data.hours_to_t1 }}h{% endif %}
+                                                        {% else %}
+                                                            {{ t1_data.hours_to_t1 }}h
+                                                        {% endif %}
+                                                    </span>
+                                                {% elif t1_data.status == 'past' %}
+                                                    <span class="countdown-badge t1-past">Checked In</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if t1_data.status == 'ready' %}
+                                                    <span class="status-indicator t1-ready">🔴 T-1 Ready</span>
+                                                {% elif t1_data.status == 'countdown' %}
+                                                    <span class="status-indicator t1-countdown">⏳ T-1 Wait</span>
+                                                {% elif t1_data.status == 'past' %}
+                                                    <span class="status-indicator t1-past">✅ Arrived</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if t1_data.status == 'ready' %}
+                                                    <button class="btn-table-sms" onclick="sendSMSOffer('{{ t1_data.guest.booking.id }}', 't1')">
+                                                        📱 T-1 SMS
+                                                    </button>
+                                                {% elif t1_data.status == 'countdown' %}
+                                                    <button class="btn-table-view" onclick="viewGuestDetails('{{ t1_data.guest.booking.id }}')">
+                                                        👁️ View
+                                                    </button>
+                                                {% elif t1_data.status == 'past' %}
+                                                    <button class="btn-table-view" onclick="viewGuestDetails('{{ t1_data.guest.booking.id }}')">
+                                                        👁️ Details
+                                                    </button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="no-t1-message">
+                        No eligible guests found for T-1 SMS workflow.
+                    </div>
+                {% endif %}
             </div>
             <div class="summary-line">
                 <span class="summary-label">Monitoring (In workflow window):</span>
@@ -107,7 +285,7 @@
             <div class="step-line">
                 <span class="step-number">1</span>
                 <span class="step-label">Guest Identification:</span>
-                <span class="step-description">Weekend stays (Fri check-in, Sun check-out), Room not booked for Sunday night</span>
+                <span class="step-description">checkout Sunday, staying > 2 nights. Room not booked for Sunday Night</span>
             </div>
             <div class="step-line">
                 <span class="step-number">2</span>
@@ -227,7 +405,7 @@
     <div class="no-guests">
         <div class="no-guests-content">
             <h4>🎉 No Eligible Guests Found</h4>
-            <p>Currently no guests with Friday-Sunday bookings in the workflow window.</p>
+            <p>Currently no guests with Sunday checkout and >2 nights stay in the workflow window.</p>
             <p>Eligible guests will appear here 14 days before their check-in date.</p>
         </div>
     </div>
@@ -420,6 +598,301 @@
 
 .expand-icon.rotated {
     transform: rotate(180deg);
+}
+
+/* T-14 Guests Dropdown */
+.t14-guests-dropdown {
+    margin-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+.t14-guests-table-container {
+    overflow-x: auto;
+}
+
+.t14-guests-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
+.t14-guests-table th {
+    background-color: #f8f9fa;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #e9ecef;
+    font-size: 0.75rem;
+}
+
+.t14-guests-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+    color: #666;
+    vertical-align: top;
+}
+
+.t14-guests-table td:first-child {
+    color: #2c3e50;
+}
+
+.t14-guests-table td strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.t14-guests-table tr:last-child td {
+    border-bottom: none;
+}
+
+.t14-guests-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Status-based row styling */
+.t14-row.status-ready {
+    border-left: 3px solid #28a745;
+}
+
+.t14-row.status-countdown {
+    border-left: 3px solid #ffc107;
+}
+
+.t14-row.status-past {
+    border-left: 3px solid #dc3545;
+}
+
+/* T-1 Guests Table */
+.t1-guests-dropdown {
+    margin-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+.t1-guests-table-container {
+    overflow-x: auto;
+}
+
+.t1-guests-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
+.t1-guests-table th {
+    background-color: #f8f9fa;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #e9ecef;
+    font-size: 0.75rem;
+}
+
+.t1-guests-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+    color: #666;
+    vertical-align: top;
+}
+
+.t1-guests-table td:first-child {
+    color: #2c3e50;
+}
+
+.t1-guests-table td strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.t1-guests-table tr:last-child td {
+    border-bottom: none;
+}
+
+.t1-guests-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* T-1 Status-based row styling */
+.t1-row.status-ready {
+    border-left: 3px solid #dc3545;
+}
+
+.t1-row.status-countdown {
+    border-left: 3px solid #ffc107;
+}
+
+.t1-row.status-past {
+    border-left: 3px solid #6c757d;
+}
+
+/* Group header styling */
+.group-header {
+    background-color: #e9ecef !important;
+    border-top: 2px solid #adb5bd;
+}
+
+.group-header td {
+    padding: 0.75rem !important;
+    font-weight: 600;
+    color: #495057 !important;
+    font-size: 0.85rem;
+}
+
+.group-header:hover {
+    background-color: #e9ecef !important;
+}
+
+.guest-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.guest-summary strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.booking-number {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.guest-dates {
+    color: #666;
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.guest-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sms-mini {
+    background-color: #28a745;
+    color: white;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-sms-mini:hover {
+    background-color: #218838;
+}
+
+.countdown-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.countdown-label {
+    color: #666;
+    font-size: 0.75rem;
+}
+
+/* Table badges and indicators */
+.countdown-badge {
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.countdown-badge.ready {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.countdown-badge.countdown {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.countdown-badge.past {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.countdown-badge.t1-ready {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.countdown-badge.t1-countdown {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.countdown-badge.t1-past {
+    background-color: #e2e3e5;
+    color: #495057;
+}
+
+.status-indicator {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Table action buttons */
+.btn-table-sms,
+.btn-table-view {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-table-sms {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-table-sms:hover {
+    background-color: #218838;
+}
+
+.btn-table-view {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-table-view:hover {
+    background-color: #5a6268;
+}
+
+.no-t14-message,
+.no-t1-message {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    font-size: 0.8rem;
+    padding: 1rem;
 }
 
 .eligible-guests-dropdown {
@@ -835,6 +1308,36 @@ let currentSMSType = null;
 function toggleEligibleGuests() {
     const dropdown = document.getElementById('eligible-guests-dropdown');
     const icon = document.getElementById('expand-icon');
+    
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
+        icon.classList.add('rotated');
+        icon.textContent = '▲';
+    } else {
+        dropdown.style.display = 'none';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    }
+}
+
+function toggleT14Guests() {
+    const dropdown = document.getElementById('t14-guests-dropdown');
+    const icon = document.getElementById('t14-expand-icon');
+    
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
+        icon.classList.add('rotated');
+        icon.textContent = '▲';
+    } else {
+        dropdown.style.display = 'none';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    }
+}
+
+function toggleT1Guests() {
+    const dropdown = document.getElementById('t1-guests-dropdown');
+    const icon = document.getElementById('t1-expand-icon');
     
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
         dropdown.style.display = 'block';

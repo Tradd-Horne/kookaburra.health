@@ -12,8 +12,9 @@ from django.http import HttpResponse, Http404
 import csv
 from datetime import datetime, timedelta
 import pytz
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, ExpressionWrapper, IntegerField
 from django.utils import timezone as django_timezone
+from collections import defaultdict
 
 from api.models import GoogleDriveFolder, Booking, IngestionRun
 
@@ -290,18 +291,20 @@ def guest_extra_night_workflow(request):
     # Get current date for calculations
     today = django_timezone.now().date()
     
-    # Step 1: Identify eligible guests (Friday check-in, Sunday check-out, weekend stays)
+    # Step 1: Identify eligible guests (checkout Sunday, staying > 2 nights)
     # Django week_day: 1=Sunday, 2=Monday, 3=Tuesday, 4=Wednesday, 5=Thursday, 6=Friday, 7=Saturday
-    # Look for bookings that check in on Friday and check out on Sunday
+    # Look for bookings that check out on Sunday and stay more than 2 nights
+    
     eligible_guests = Booking.objects.filter(
         user=request.user,  # Only show current user's bookings
         ingestion_run__folder=connected_folder,
         arrive_date__isnull=False,
         depart_date__isnull=False,
-        arrive_date__week_day=6,  # Friday (Django: 1=Sunday, 6=Friday)
-        depart_date__week_day=1,  # Sunday (Django: 1=Sunday)
+        depart_date__week_day=1,  # Sunday checkout (Django: 1=Sunday)
         arrive_date__gte=today,   # Future bookings only
         status__in=['Booking', 'Confirmed']  # Active bookings
+    ).extra(
+        where=["depart_date - arrive_date > 2"]
     ).order_by('arrive_date')[:20]  # Limit to next 20 for demo
     
     # Calculate workflow flags for each guest
@@ -344,11 +347,130 @@ def guest_extra_night_workflow(request):
             'next_action': next_action
         })
     
+    # Calculate T-1 countdown for ALL eligible guests
+    all_t1_guests = []
+    for guest in workflow_guests:
+        booking = guest['booking']
+        days_until_checkin = guest['days_until_checkin']
+        
+        # Calculate T-1 date (1 day before check-in)
+        t1_date = booking.arrive_date - timedelta(days=1)
+        
+        # Calculate time until T-1
+        now = django_timezone.now()
+        t1_datetime = django_timezone.make_aware(datetime.combine(t1_date, datetime.min.time()))
+        time_until_t1 = t1_datetime - now
+        
+        # Determine status
+        if days_until_checkin == 1:
+            status = 'ready'  # Ready to send T-1 SMS today
+        elif days_until_checkin > 1:
+            status = 'countdown'  # Still counting down to T-1
+        else:
+            status = 'past'  # T-1 has passed (guest checked in)
+        
+        # Calculate days and hours until T-1
+        if time_until_t1.total_seconds() > 0:
+            days_to_t1 = time_until_t1.days
+            hours_to_t1 = time_until_t1.seconds // 3600
+        else:
+            days_to_t1 = 0
+            hours_to_t1 = 0
+        
+        all_t1_guests.append({
+            'guest': guest,
+            'status': status,
+            'days_to_t1': days_to_t1,
+            'hours_to_t1': hours_to_t1,
+            't1_date': t1_date
+        })
+    
+    # Group T-1 guests by checkout date only, but order by rate within each group
+    t1_grouped = defaultdict(list)
+    for guest_data in all_t1_guests:
+        checkout_date = guest_data['guest']['booking'].depart_date
+        t1_grouped[checkout_date].append(guest_data)
+    
+    # Sort checkout dates and guests by rate within each group
+    t1_grouped_sorted = []
+    for checkout_date in sorted(t1_grouped.keys()):
+        # Sort guests by rate within this checkout date group
+        guests_sorted = sorted(t1_grouped[checkout_date], 
+                             key=lambda x: x['guest']['booking'].rate or "Standard Rate")
+        guest_count = len(guests_sorted)
+        
+        t1_grouped_sorted.append({
+            'checkout_date': checkout_date,
+            'guests': guests_sorted,
+            'guest_count': guest_count
+        })
+    
     # Get summary statistics
     total_eligible = len(workflow_guests)
-    pending_t14 = len([g for g in workflow_guests if g['t14_eligible']])
-    pending_t1 = len([g for g in workflow_guests if g['t1_eligible']])
+    pending_t1 = len(all_t1_guests)  # Count all guests for T-1 summary (since we show all guests in the section)
     in_monitoring = len([g for g in workflow_guests if g['in_window'] and not g['t14_eligible'] and not g['t1_eligible']])
+    
+    # Calculate T-14 countdown for ALL eligible guests
+    
+    all_t14_guests = []
+    for guest in workflow_guests:
+        booking = guest['booking']
+        days_until_checkin = guest['days_until_checkin']
+        
+        # Calculate T-14 date (14 days before check-in)
+        t14_date = booking.arrive_date - timedelta(days=14)
+        
+        # Calculate time until T-14
+        now = django_timezone.now()
+        t14_datetime = django_timezone.make_aware(datetime.combine(t14_date, datetime.min.time()))
+        time_until_t14 = t14_datetime - now
+        
+        # Determine status
+        if days_until_checkin == 14:
+            status = 'ready'  # Ready to send T-14 SMS today
+        elif days_until_checkin > 14:
+            status = 'countdown'  # Still counting down to T-14
+        else:
+            status = 'past'  # T-14 has passed
+        
+        # Calculate days and hours until T-14
+        if time_until_t14.total_seconds() > 0:
+            days_to_t14 = time_until_t14.days
+            hours_to_t14 = time_until_t14.seconds // 3600
+        else:
+            days_to_t14 = 0
+            hours_to_t14 = 0
+        
+        all_t14_guests.append({
+            'guest': guest,
+            'status': status,
+            'days_to_t14': days_to_t14,
+            'hours_to_t14': hours_to_t14,
+            't14_date': t14_date
+        })
+    
+    # Group T-14 guests by checkout date only, but order by rate within each group
+    t14_grouped = defaultdict(list)
+    for guest_data in all_t14_guests:
+        checkout_date = guest_data['guest']['booking'].depart_date
+        t14_grouped[checkout_date].append(guest_data)
+    
+    # Sort checkout dates and guests by rate within each group
+    t14_grouped_sorted = []
+    for checkout_date in sorted(t14_grouped.keys()):
+        # Sort guests by rate within this checkout date group
+        guests_sorted = sorted(t14_grouped[checkout_date], 
+                             key=lambda x: x['guest']['booking'].rate or "Standard Rate")
+        guest_count = len(guests_sorted)
+        
+        t14_grouped_sorted.append({
+            'checkout_date': checkout_date,
+            'guests': guests_sorted,
+            'guest_count': guest_count
+        })
+    
+    # Count all guests for T-14 summary (since we show all guests in the section)
+    pending_t14 = len(all_t14_guests)
     
     # Queensland timezone for display
     qld_tz = pytz.timezone('Australia/Brisbane')
@@ -363,6 +485,10 @@ def guest_extra_night_workflow(request):
             'pending_t1': pending_t1,
             'in_monitoring': in_monitoring,
         },
+        'all_t14_guests': all_t14_guests,
+        'all_t1_guests': all_t1_guests,
+        't14_grouped_sorted': t14_grouped_sorted,
+        't1_grouped_sorted': t1_grouped_sorted,
         'qld_tz': qld_tz,
     }
     
