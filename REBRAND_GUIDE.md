@@ -119,16 +119,59 @@ healthcheck:
 - Update all references to match your brand
 - Update domain names in examples
 
-### 5. Test Locally
+### 5. Set Up Environment File
+
+Create your `.env.dev` file with development settings:
 
 ```bash
-# Start Docker containers
-docker compose -f docker-compose.dev.yml up --build
+# Create .env.dev file
+cat > .env.dev << EOF
+# Django Settings
+SECRET_KEY=dev-secret-key-change-in-production-123456789
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+
+# Database
+DATABASE_URL=postgresql://yourbrand_user:devpassword@db:5432/yourbrand_db
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+
+# Email (optional for dev)
+EMAIL_HOST=
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+DEFAULT_FROM_EMAIL=noreply@yourbrand.com
+EOF
+```
+
+### 6. Test Locally with Docker
+
+```bash
+# Start Docker containers in detached mode
+docker compose -f docker-compose.dev.yml up -d
+
+# Check containers are running
+docker compose -f docker-compose.dev.yml ps
 
 # Visit http://localhost:8000 to verify
 ```
 
-### 6. Remove Any Credentials from Git History
+**Useful Docker commands:**
+```bash
+# View logs
+docker compose -f docker-compose.dev.yml logs -f
+
+# Stop containers
+docker compose -f docker-compose.dev.yml down
+
+# Rebuild and start
+docker compose -f docker-compose.dev.yml up --build -d
+```
+
+### 7. Remove Any Credentials from Git History
 
 **IMPORTANT**: Before pushing to GitHub, ensure no credential files are tracked:
 
@@ -154,24 +197,55 @@ git filter-repo --path service-account.json --invert-paths --force
 git filter-repo --path token.json --invert-paths --force
 ```
 
-### 7. Create New GitHub Repository
+### 8. Create New GitHub Repository
 
 1. Go to https://github.com/new
 2. Name your repository (e.g., `yourbrand-backend`)
 3. **Do NOT** initialize with README (you already have one)
 4. Click "Create repository"
 
-### 8. Push to GitHub
+### 9. Connect and Push to GitHub
+
+#### First Time Setup
 
 ```bash
+# Initialize git repository (if not already done)
+git init
+
 # Add your new repository as remote
 git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
 
+# Stage all files
+git add .
+
+# Create initial commit
+git commit -m "Initial commit"
+
+# Rename branch to main (GitHub default)
+git branch -M main
+
 # Push to GitHub
-git push -u origin master
+git push -u origin main
 ```
 
-### 9. Set Up Production (Optional)
+#### Making Future Updates
+
+After the initial setup, use these commands to push changes:
+
+```bash
+# Stage your changes
+git add .
+
+# Commit with a message
+git commit -m "Your commit message describing the changes"
+
+# Push to GitHub
+git push
+```
+
+**Note**: Since the remote is already configured, you can use just `git push` instead of `git push origin main`.
+
+### 10. Set Up Production (Optional)
 
 When ready to deploy:
 

@@ -150,7 +150,7 @@
         <div class="container">
             <h1>Kookaburra Health</h1>
             <nav>
-                <a href="/">Home</a>
+                <a href="{% url 'lander' %}">Home</a>
                 {% if user.is_authenticated %}
                     <a href="/admin/">Admin</a>
                     <form method="post" action="{% url 'users:logout' %}" style="display: inline;">

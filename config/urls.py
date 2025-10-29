@@ -6,10 +6,11 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from apps.core.views import index
+from apps.core.views import index, lander
 
 urlpatterns = [
     path('', index, name='index'),
+    path('lander/', lander, name='lander'),
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.users.urls')),
     path('dashboard/', include('apps.dashboard.urls')),
