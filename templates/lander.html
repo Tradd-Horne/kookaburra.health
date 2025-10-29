@@ -56,6 +56,25 @@
             gap: 0.5rem;
         }
 
+        .typing-text {
+            display: inline-block;
+            min-width: 280px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 0.9rem;
+            background-color: #333;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
         .info-icon {
             width: 18px;
             height: 18px;
@@ -311,7 +330,7 @@
 
         <div class="header-center">
             <div class="tagline">
-                Cooking inspiration, personalized.
+                <span class="typing-text" id="typingText">psychology.</span>
                 <span class="info-icon" id="infoIcon">i</span>
             </div>
         </div>
@@ -407,6 +426,70 @@
                 infoIcon.classList.remove('active');
             }
         });
+
+        // Typing effect
+        const typingText = document.getElementById('typingText');
+        const phrases = [
+            ['connect', 'grow', 'thrive'],
+            ['heal', 'strengthen', 'evolve'],
+            ['focus', 'grow', 'perform'],
+            ['support', 'transform', 'flourish']
+        ];
+
+        let phraseIndex = 0;
+        let isDeleting = false;
+        let currentText = 'psychology. ';
+        let wordIndex = 0;
+        let charIndex = 0;
+
+        function type() {
+            const currentPhrase = phrases[phraseIndex];
+            const currentWord = currentPhrase[wordIndex];
+
+            if (!isDeleting) {
+                // Typing
+                if (charIndex < currentWord.length) {
+                    currentText += currentWord[charIndex];
+                    charIndex++;
+                    typingText.textContent = currentText;
+                    setTimeout(type, 80);
+                } else {
+                    // Word complete, add period and space if not last word
+                    if (wordIndex < currentPhrase.length - 1) {
+                        currentText += '. ';
+                        wordIndex++;
+                        charIndex = 0;
+                        typingText.textContent = currentText;
+                        setTimeout(type, 200);
+                    } else {
+                        // All words done, add final period and pause before deleting
+                        currentText += '.';
+                        typingText.textContent = currentText;
+                        setTimeout(() => {
+                            isDeleting = true;
+                            type();
+                        }, 2000);
+                    }
+                }
+            } else {
+                // Deleting
+                if (currentText.length > 'psychology. '.length) {
+                    currentText = currentText.slice(0, -1);
+                    typingText.textContent = currentText;
+                    setTimeout(type, 40);
+                } else {
+                    // Done deleting, move to next phrase
+                    isDeleting = false;
+                    wordIndex = 0;
+                    charIndex = 0;
+                    phraseIndex = (phraseIndex + 1) % phrases.length;
+                    setTimeout(type, 500);
+                }
+            }
+        }
+
+        // Start typing effect after page load
+        setTimeout(type, 1000);
     </script>
 </body>
 </html>
