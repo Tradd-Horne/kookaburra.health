@@ -1,14 +1,110 @@
 {% extends 'base.html' %}
 
-{% block title %}Home - Flowtels{% endblock %}
+{% block title %}Home - Kookaburra Health{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        margin-bottom: 3rem;
+    }
+
+    .hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+
+    .hero p {
+        font-size: 1.3rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+    }
+
+    .cta-button {
+        background: white;
+        color: #667eea;
+        padding: 1rem 2.5rem;
+        border-radius: 50px;
+        text-decoration: none;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: inline-block;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin: 3rem 0;
+    }
+
+    .feature-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .feature-card h3 {
+        color: #667eea;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+
+    .feature-card p {
+        color: #666;
+        line-height: 1.6;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="text-align: center; padding: 3rem 0;">
-    <h1>Welcome to Flowtels</h1>
-    <p style="font-size: 1.2rem; color: #666; margin: 2rem 0;">
-        A workspace for testing and implementing data and logic flows in the hotel industry.
-    </p>
-    
-    
+<div class="hero">
+    <h1>Welcome to Kookaburra Health</h1>
+    <p>Empowering better health outcomes through innovative technology</p>
+    {% if not user.is_authenticated %}
+    <a href="{% url 'users:signup' %}" class="cta-button">Get Started</a>
+    {% endif %}
 </div>
+
+<div class="features">
+    <div class="feature-card">
+        <h3>🏥 Healthcare Solutions</h3>
+        <p>Comprehensive digital health tools designed to streamline patient care and improve outcomes.</p>
+    </div>
+
+    <div class="feature-card">
+        <h3>🔒 Secure & Private</h3>
+        <p>Your health data is protected with enterprise-grade security and privacy standards.</p>
+    </div>
+
+    <div class="feature-card">
+        <h3>📊 Data-Driven Insights</h3>
+        <p>Make informed decisions with powerful analytics and real-time health monitoring.</p>
+    </div>
+</div>
+
+{% if user.is_authenticated %}
+<div style="text-align: center; margin: 3rem 0;">
+    <h2 style="color: #333; margin-bottom: 1rem;">Welcome back, {{ user.username }}!</h2>
+    <p style="color: #666; font-size: 1.1rem;">Ready to continue your health journey?</p>
+</div>
+{% endif %}
 {% endblock %}

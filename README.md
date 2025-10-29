@@ -1,13 +1,11 @@
-# Django Template - Currently set up as: Flowtels.com
+# Kookaburra Health - Django Application
 
 To get started:
   1. Copy .env.example to .env.dev
-  2. Run make dev or docker compose -f docker-compose.dev.yml up --build
-  3. Run migrations: make migrate
-  4. Create a superuser: make superuser
-  5. Access the site at http://localhost:8000
+  2. Run docker compose -f docker-compose.dev.yml up --build
+  3. Access the site at http://localhost:8000
 
-A production-ready Django project template with Docker, PostgreSQL, Nginx, and HTTPS support.
+A production-ready Django health platform with Docker, PostgreSQL, Nginx, and HTTPS support.
 
 ## Features
 
@@ -28,32 +26,25 @@ A production-ready Django project template with Docker, PostgreSQL, Nginx, and H
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd flowtels.com
+cd kookaburra.health
 ```
 
 2. Create development environment file:
 ```bash
 cp .env.example .env.dev
-# Edit .env.dev with your settings
 ```
 
 3. Start the development environment:
 ```bash
-make dev
-# or
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-4. Run migrations and create superuser:
-```bash
-make migrate
-make superuser
-```
-
-5. Access the application:
+4. Access the application:
 - Application: http://localhost:8000
 - Admin: http://localhost:8000/admin/
 - API Documentation: http://localhost:8000/api/docs/
+
+Note: The docker-compose setup automatically runs migrations on startup.
 
 ## Quick Start - Production
 
@@ -81,7 +72,7 @@ su - deploy
 2. Clone and configure:
 ```bash
 git clone <repository-url>
-cd flowtels.com
+cd kookaburra.health
 
 # Create production environment file
 cp .env.example .env.prod
@@ -100,7 +91,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 # Create certificate
 docker compose -f docker-compose.prod.yml exec certbot certbot certonly \
   --webroot --webroot-path=/var/www/certbot \
-  -d flowtels.com -d www.flowtels.com \
+  -d kookaburra.health -d www.kookaburra.health \
   --email your-email@example.com \
   --agree-tos --no-eff-email
 
@@ -113,7 +104,7 @@ docker compose -f docker-compose.prod.yml restart nginx
 # Add to crontab
 crontab -e
 # Add this line:
-0 12 * * * cd /path/to/flowtels.com && docker compose -f docker-compose.prod.yml exec certbot certbot renew --quiet && docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
+0 12 * * * cd /path/to/kookaburra.health && docker compose -f docker-compose.prod.yml exec certbot certbot renew --quiet && docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
 ```
 
 ## Environment Variables
@@ -124,13 +115,13 @@ Copy `.env.example` to `.env.dev` or `.env.prod` and configure:
 # Django
 SECRET_KEY=your-secret-key-here
 DEBUG=True  # False for production
-ALLOWED_HOSTS=localhost,127.0.0.1  # flowtels.com,www.flowtels.com for production
+ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0  # kookaburra.health,www.kookaburra.health for production
 
 # Database
-POSTGRES_DB=flowtels_db
-POSTGRES_USER=flowtels_user
-POSTGRES_PASSWORD=secure-password
-DATABASE_URL=postgresql://flowtels_user:secure-password@db:5432/flowtels_db
+POSTGRES_DB=kookaburra_db
+POSTGRES_USER=kookaburra_user
+POSTGRES_PASSWORD=devpassword
+DATABASE_URL=postgresql://kookaburra_user:devpassword@db:5432/kookaburra_db
 
 # Email (optional)
 EMAIL_HOST=smtp.gmail.com
@@ -140,7 +131,7 @@ EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
 
 # Domain (production)
-DOMAIN_NAME=flowtels.com
+DOMAIN_NAME=kookaburra.health
 ```
 
 ## Authentication URLs
@@ -258,7 +249,7 @@ make prod-down
 ## Project Structure
 
 ```
-flowtels.com/
+kookaburra.health/
 ├── compose/
 │   ├── dev/
 │   └── prod/

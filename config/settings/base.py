@@ -151,8 +151,8 @@ REST_FRAMEWORK = {
 
 # DRF Spectacular settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Flowtels API',
-    'DESCRIPTION': 'API documentation for Flowtels',
+    'TITLE': 'Kookaburra Health API',
+    'DESCRIPTION': 'API documentation for Kookaburra Health',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'SWAGGER_UI_DIST': 'SIDECAR',
@@ -178,7 +178,7 @@ EMAIL_PORT = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@flowtels.com')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@kookaburra.health')
 
 # Logging
 LOGGING = {
