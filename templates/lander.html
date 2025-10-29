@@ -199,6 +199,132 @@
             color: #000;
         }
 
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 15;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .login-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(247, 248, 243, 0.65);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+
+        .login-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .login-form-container {
+            max-width: 400px;
+            margin: auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 16;
+        }
+
+        .login-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #333;
+            background: none;
+            border: none;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .login-close:hover {
+            transform: scale(1.1);
+        }
+
+        .login-form-container h2 {
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            border-color: #1a1a1a;
+        }
+
+        .login-submit-btn {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-family: inherit;
+        }
+
+        .login-submit-btn:hover {
+            background: #333;
+        }
+
+        .login-links {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .login-links a {
+            color: #333;
+            text-decoration: underline;
+        }
+
+        .login-links a:hover {
+            color: #000;
+        }
+
+        .errorlist {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            list-style: none;
+        }
+
         .auth-buttons {
             display: flex;
             gap: 1rem;
@@ -372,7 +498,7 @@
                     <a href="{% url 'dashboard:home' %}" class="btn btn-login">Dashboard</a>
                     <a href="{% url 'users:logout' %}" class="btn btn-join">Log Out</a>
                 {% else %}
-                    <a href="{% url 'users:login' %}" class="btn btn-login">Log In</a>
+                    <button class="btn btn-login" id="loginBtn">Log In</button>
                     <a href="{% url 'users:signup' %}" class="btn btn-join">Join Waitlist</a>
                 {% endif %}
             </div>
@@ -409,6 +535,28 @@
             <p>We're still early, but we're excited about what's ahead — from personalized therapy matching to family-centered approaches and tools to track your emotional growth journey.</p>
 
             <p>Curious? <a href="#">Get in touch</a>.</p>
+        </div>
+    </div>
+
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-form-container">
+            <button class="login-close" id="closeLogin">×</button>
+            <h2>Log In</h2>
+            <form method="post" action="{% url 'users:login' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="text" name="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="login-submit-btn">Log In</button>
+            </form>
+            <div class="login-links">
+                <p>Don't have an account? <a href="{% url 'users:signup' %}">Sign up</a></p>
+                <p><a href="{% url 'users:password_reset' %}">Forgot your password?</a></p>
+            </div>
         </div>
     </div>
 
@@ -520,6 +668,40 @@
 
         // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Login dropdown functionality
+        const loginBtn = document.getElementById('loginBtn');
+        const loginOverlay = document.getElementById('loginOverlay');
+        const closeLogin = document.getElementById('closeLogin');
+
+        if (loginBtn) {
+            loginBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginOverlay.classList.add('active');
+            });
+        }
+
+        if (closeLogin) {
+            closeLogin.addEventListener('click', function() {
+                loginOverlay.classList.remove('active');
+            });
+        }
+
+        // Close login on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && loginOverlay.classList.contains('active')) {
+                loginOverlay.classList.remove('active');
+            }
+        });
+
+        // Close login when clicking outside
+        if (loginOverlay) {
+            loginOverlay.addEventListener('click', function(e) {
+                if (e.target === loginOverlay) {
+                    loginOverlay.classList.remove('active');
+                }
+            });
+        }
     </script>
 </body>
 </html>
