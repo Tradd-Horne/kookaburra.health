@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up - Flowtels{% endblock %}
+
+{% block content %}
+<div class="auth-form">
+    <h2>Sign Up</h2>
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="errorlist">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+        
+        {% for field in form %}
+            <div class="form-group">
+                {{ field }}
+                {% if field.help_text %}
+                    <div class="helptext">{{ field.help_text }}</div>
+                {% endif %}
+                {% if field.errors %}
+                    <div class="errorlist">
+                        {{ field.errors }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        
+        <button type="submit" class="btn">Sign Up</button>
+    </form>
+    
+    <p style="margin-top: 1rem;">
+        Already have an account? <a href="{% url 'users:login' %}">Login</a>
+    </p>
+</div>
+{% endblock %}

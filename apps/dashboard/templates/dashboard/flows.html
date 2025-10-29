@@ -1,0 +1,1340 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Flows - Dashboard{% endblock %}
+{% block page_title %}Flows Management{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <h2>Connections</h2>
+    <p>Manage your integrations and API connections:</p>
+    
+    <div class="finder-columns">
+        <div class="finder-column">
+            <div class="finder-column-header">Categories</div>
+            <div class="finder-item active" data-category="google-drive">
+                <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
+                    <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
+                </svg>
+                <span>Google Drive</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                    <path d="M2 2L6 4L2 6z" fill="#999"/>
+                </svg>
+            </div>
+            <div class="finder-item" data-category="workflows">
+                <svg width="16" height="16" viewBox="0 0 16 16" class="folder-icon">
+                    <path d="M2 3h4l2 2h6c0.6 0 1 0.4 1 1v7c0 0.6-0.4 1-1 1H2c-0.6 0-1-0.4-1-1V4c0-0.6 0.4-1 1-1z" fill="#5aa3e3"/>
+                </svg>
+                <span>Workflows</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                    <path d="M2 2L6 4L2 6z" fill="#999"/>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="finder-column">
+            <div class="finder-column-header" id="column2-header">Google Drive</div>
+            
+            <!-- Google Drive Content (visible by default) -->
+            <div id="google-drive-content">
+                <div class="finder-item active">
+                    <svg width="16" height="16" viewBox="0 0 16 16" class="file-icon">
+                        <rect width="16" height="16" rx="2" fill="#4285f4"/>
+                        <path d="M3 4h10c0.5 0 1 0.5 1 1v6c0 0.5-0.5 1-1 1H3c-0.5 0-1-0.5-1-1V5c0-0.5 0.5-1 1-1z" fill="white"/>
+                        <path d="M5 6h6v1H5zM5 8h4v1H5z" fill="#4285f4"/>
+                    </svg>
+                    <span>Project Documents</span>
+                    <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                        <path d="M2 2L6 4L2 6z" fill="#999"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Workflows Content (hidden by default) -->
+            <div id="workflows-content" style="display: none;">
+                <div class="finder-item active">
+                    <svg width="16" height="16" viewBox="0 0 16 16" class="file-icon">
+                        <rect width="16" height="16" rx="2" fill="#f39c12"/>
+                        <path d="M3 3h10v2H3zM3 6h8v2H3zM3 9h6v2H3zM3 12h4v2H3z" fill="white"/>
+                    </svg>
+                    <span>SALT-Looong-weekend</span>
+                    <svg width="8" height="8" viewBox="0 0 8 8" class="arrow-icon">
+                        <path d="M2 2L6 4L2 6z" fill="#999"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="finder-column">
+            <div class="finder-column-header" id="column3-header">Available Folders</div>
+            
+            <!-- Google Drive Preview (visible by default) -->
+            <div id="google-drive-preview">
+                <div class="finder-preview">
+                    <div class="finder-preview-info">
+                        <h3>Available Folders</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <button class="btn" onclick="openAddFolderModal()">+ Add Google Drive Folder</button>
+                        </div>
+                        <div id="watched-folders-list">
+                            <div class="loading-message">Loading available folders...</div>
+                        </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e1e5e9;">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                                <button class="btn btn-import" onclick="importBookingData()">Import Bookings</button>
+                                <div id="last-import-info" style="margin-left: 1rem; font-size: 0.8rem; color: #666;">
+                                    <span class="loading-text">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e1e5e9;">
+                            <h4 style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Previously Imported Data</h4>
+                            <div id="inactive-folders-list">
+                                <div class="loading-message">Loading inactive folders...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Workflows Preview (hidden by default) -->
+            <div id="workflows-preview" style="display: none;">
+                <div class="finder-preview">
+                    <div class="finder-preview-info">
+                        <h3>SALT Long Weekend Project</h3>
+                        <div id="workflow-connection-status" style="margin: 1rem 0; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px; font-size: 0.85rem;">
+                            <div class="connection-info">Loading connection status...</div>
+                        </div>
+                        <div class="workflow-actions">
+                            <button class="btn btn-connect" onclick="openConnectDatabaseModal()" style="margin-top: 0.5rem;">Connect to Database</button>
+                            <a href="#" onclick="openWorkflow()" class="btn" style="margin-top: 0.5rem; margin-left: 0.5rem; text-decoration: none;">Open Workflow</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connect to Database Modal -->
+<div id="connectDatabaseModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Connect Workflow to Database</h3>
+            <span class="close" onclick="closeConnectDatabaseModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Select a Google Drive folder database to connect your workflow to:</p>
+            
+            <div class="database-list" id="database-list">
+                <div class="loading-message">Loading available databases...</div>
+            </div>
+            
+            <div class="connection-details" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e1e5e9;">
+                <h4>About Database Connections</h4>
+                <p style="font-size: 0.85rem; color: #666; line-height: 1.4;">
+                    Connecting your workflow to a database gives it access to all the processed booking data 
+                    from that Google Drive folder. This includes guest information, booking details, 
+                    financial data, and import history.
+                </p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeConnectDatabaseModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Google Drive Folder Modal -->
+<div id="addFolderModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Google Drive Folder</h3>
+            <span class="close" onclick="closeAddFolderModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="folderUrl">Google Drive Folder URL or ID:</label>
+                <input type="text" id="folderUrl" placeholder="https://drive.google.com/drive/folders/1ABC123... or folder ID" />
+                <small class="help-text">Paste the share link or folder ID from Google Drive</small>
+            </div>
+            
+            <div id="folderValidation" class="validation-result" style="display: none;">
+                <div class="loading-spinner" id="loadingSpinner" style="display: none;">Validating folder...</div>
+                <div id="folderInfo" style="display: none;">
+                    <h4>Folder Details:</h4>
+                    <div class="folder-details">
+                        <div><strong>Name:</strong> <span id="folderName">-</span></div>
+                        <div><strong>Files:</strong> <span id="folderFileCount">-</span></div>
+                        <div><strong>Owner:</strong> <span id="folderOwner">-</span></div>
+                        <div><strong>Last Modified:</strong> <span id="folderLastModified">-</span></div>
+                    </div>
+                </div>
+                <div id="folderError" class="error-message" style="display: none;">
+                    Unable to access folder. Please check the URL and ensure the folder is shared.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeAddFolderModal()">Cancel</button>
+            <button class="btn" id="validateBtn" onclick="validateFolder()">Validate Folder</button>
+            <button class="btn" id="addBtn" onclick="addFolder()" style="display: none;">Add Folder</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.empty-state {
+    text-align: center;
+    padding: 3rem 0;
+    color: #7f8c8d;
+}
+
+.empty-state p {
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.finder-columns {
+    display: flex;
+    margin-top: 1.5rem;
+    background-color: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    overflow: hidden;
+    min-height: 200px;
+}
+
+.finder-column {
+    flex: 1;
+    border-right: 1px solid #d0d0d0;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+}
+
+.finder-column:nth-child(1) {
+    flex: 0.5;
+    min-width: 120px;
+}
+
+.finder-column:nth-child(2) {
+    flex: 0.5;
+    min-width: 120px;
+}
+
+.finder-column:last-child {
+    border-right: none;
+}
+
+.finder-column-header {
+    background-color: #f6f6f6;
+    color: #333333;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    border-bottom: 1px solid #d0d0d0;
+}
+
+.finder-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    color: #333333;
+    cursor: pointer;
+    font-size: 0.8rem;
+    gap: 8px;
+    transition: background-color 0.1s ease;
+}
+
+.finder-item:hover {
+    background-color: #f0f0f0;
+}
+
+.finder-item.active {
+    background-color: #0066cc;
+    color: #ffffff;
+}
+
+.finder-item span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-icon, .file-icon {
+    flex-shrink: 0;
+}
+
+.arrow-icon {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.finder-preview {
+    padding: 12px;
+    color: #333333;
+    overflow-y: auto;
+}
+
+.finder-preview-icon {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.finder-preview-info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+    color: #2c3e50;
+}
+
+.finder-preview-info p {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #666666;
+    margin-bottom: 8px;
+}
+
+.finder-preview-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.75rem;
+    color: #777777;
+    margin-bottom: 8px;
+}
+
+.finder-preview-details strong {
+    color: #333333;
+}
+
+.btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+}
+
+.close {
+    font-size: 1.5rem;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.help-text {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.validation-result {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.loading-spinner {
+    color: #666;
+    font-style: italic;
+}
+
+.folder-details {
+    margin-top: 0.5rem;
+}
+
+.folder-details div {
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.error-message {
+    color: #e74c3c;
+    font-size: 0.85rem;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn-import {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-import:hover {
+    background-color: #218838;
+}
+
+.btn-import:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+
+/* Watch configurations styles */
+.watch-item {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.watch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.watch-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #2c3e50;
+}
+
+.watch-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-connected {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-disconnected {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-error {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.watch-details {
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.watch-details div {
+    margin-bottom: 0.25rem;
+}
+
+.watch-details strong {
+    color: #333333;
+    font-weight: 600;
+}
+
+.expiration-warning {
+    color: #d63384 !important;
+    font-weight: 600 !important;
+}
+
+.loading-message, .no-watches, .error-message {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #666666;
+    font-style: italic;
+}
+
+.no-watches {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+}
+
+.no-watches-compact {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+}
+
+.no-watches-compact p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #666;
+    font-style: italic;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    border-radius: 6px;
+}
+
+/* Folder link styles */
+.folder-link {
+    color: #2c3e50;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.folder-link:hover {
+    color: #0066cc;
+    text-decoration: underline;
+}
+
+.folder-url-link {
+    color: #0066cc;
+    text-decoration: none;
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
+.folder-url-link:hover {
+    text-decoration: underline;
+}
+
+/* Watch actions */
+.watch-actions {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e1e5e9;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-view-data {
+    background-color: #17a2b8;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+    transition: background-color 0.2s ease;
+}
+
+.btn-view-data:hover {
+    background-color: #138496;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-clear-data {
+    background-color: #fd7e14;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-clear-data:hover {
+    background-color: #e8620e;
+    color: white;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+    color: white;
+}
+
+.btn-delete svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Connect to Database Styles */
+.btn-connect {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-connect:hover {
+    background-color: #218838;
+}
+
+.database-list {
+    margin: 1rem 0;
+}
+
+.database-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.database-item:hover {
+    background-color: #e9ecef;
+}
+
+.database-info h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    color: #2c3e50;
+}
+
+.database-info p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.database-stats {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+.btn-select-db {
+    background-color: #0066cc;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-select-db:hover {
+    background-color: #0052a3;
+}
+
+.connection-info {
+    font-size: 0.85rem;
+}
+
+.connection-status-connected {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.connection-status-disconnected {
+    color: #666;
+    font-style: italic;
+}
+
+/* Inactive folder styles - compact single line */
+.inactive-folder-item {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.inactive-folder-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+}
+
+.inactive-folder-name {
+    font-weight: 600;
+    color: #6c757d;
+    flex: 1;
+}
+
+.inactive-folder-count {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.btn-view-data-small {
+    background-color: #17a2b8;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.btn-view-data-small:hover {
+    background-color: #138496;
+    color: white;
+    text-decoration: none;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load Google Drive data by default on page load
+    loadAvailableFolders();
+    loadLastImportInfo();
+    loadInactiveFolders();
+    
+    const categoryItems = document.querySelectorAll('[data-category]');
+    
+    categoryItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            
+            // Remove active class from all category items
+            categoryItems.forEach(cat => cat.classList.remove('active'));
+            
+            // Add active class to clicked item
+            this.classList.add('active');
+            
+            // Update column headers and content
+            const column2Header = document.getElementById('column2-header');
+            const column3Header = document.getElementById('column3-header');
+            
+            if (category === 'google-drive') {
+                // Show Google Drive content
+                document.getElementById('google-drive-content').style.display = 'block';
+                document.getElementById('workflows-content').style.display = 'none';
+                document.getElementById('google-drive-preview').style.display = 'block';
+                document.getElementById('workflows-preview').style.display = 'none';
+                
+                // Update headers
+                column2Header.textContent = 'Google Drive';
+                column3Header.textContent = 'Available Folders';
+                
+                // Load available folders and last import info
+                loadAvailableFolders();
+                loadLastImportInfo();
+                loadInactiveFolders();
+            } else if (category === 'workflows') {
+                // Show Workflows content
+                document.getElementById('google-drive-content').style.display = 'none';
+                document.getElementById('workflows-content').style.display = 'block';
+                document.getElementById('google-drive-preview').style.display = 'none';
+                document.getElementById('workflows-preview').style.display = 'block';
+                
+                // Update headers
+                column2Header.textContent = 'Workflows';
+                column3Header.textContent = 'SALT-Looong-weekend';
+                
+                // Load workflow connection status
+                loadWorkflowConnectionStatus();
+            }
+        });
+    });
+});
+
+// Load available folders for manual import
+async function loadAvailableFolders() {
+    const foldersList = document.getElementById('watched-folders-list');
+    
+    try {
+        foldersList.innerHTML = '<div class="loading-message">Loading available folders...</div>';
+        
+        const response = await fetch('/api/google-drive/list-all-folders/');
+        const data = await response.json();
+        
+        if (data.folders && data.folders.length > 0) {
+            let html = '';
+            
+            data.folders.forEach(folder => {
+                // Determine status class based on whether there's data
+                const statusClass = folder.booking_count > 0 ? 'status-connected' : 'status-disconnected';
+                
+                html += `
+                    <div class="watch-item">
+                        <div class="watch-header">
+                            <h4>
+                                <a href="${folder.folder_url}" target="_blank" class="folder-link">${folder.folder_name}</a>
+                            </h4>
+                            <span class="watch-status ${statusClass}">${folder.status}</span>
+                        </div>
+                        <div class="watch-details">
+                            <div><strong>Records:</strong> ${folder.booking_count} bookings</div>
+                            <div><strong>URL:</strong> <a href="${folder.folder_url}" target="_blank" class="folder-url-link">${folder.folder_url}</a></div>
+                            <div><strong>Last Import:</strong> ${folder.last_import}</div>
+                        </div>
+                        <div class="watch-actions">
+                            ${folder.booking_count > 0 ? 
+                                `<a href="/dashboard/flows/watched-folders/${folder.folder_name}/" class="btn btn-view-data">View Data</a>
+                                 <button class="btn btn-clear-data" onclick="clearFolderData('${folder.folder_name}')" title="Clear all imported data for this folder">Clear Data</button>` 
+                                : 
+                                `<span style="color: #666; font-style: italic; font-size: 0.8rem;">No data imported yet</span>`
+                            }
+                        </div>
+                    </div>
+                `;
+            });
+            
+            foldersList.innerHTML = html;
+        } else {
+            foldersList.innerHTML = `
+                <div class="no-watches-compact">
+                    <p>No Google Drive folders added yet. Click "Add Google Drive Folder" above to get started.</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Failed to load available folders:', error);
+        foldersList.innerHTML = `
+            <div class="error-message">
+                Failed to load folders. Please try again.
+            </div>
+        `;
+    }
+}
+
+// Load inactive folders with data
+async function loadInactiveFolders() {
+    const inactiveFoldersList = document.getElementById('inactive-folders-list');
+    
+    try {
+        inactiveFoldersList.innerHTML = '<div class="loading-message">Loading inactive folders...</div>';
+        
+        const response = await fetch('/api/google-drive/list-inactive-folders/');
+        const data = await response.json();
+        
+        if (data.inactive_folders && data.inactive_folders.length > 0) {
+            let html = '';
+            
+            data.inactive_folders.forEach(folder => {
+                html += `
+                    <div class="inactive-folder-item">
+                        <div class="inactive-folder-content">
+                            <span class="inactive-folder-name">${folder.folder_name}</span>
+                            <span class="inactive-folder-count">${folder.booking_count} records</span>
+                            <a href="/dashboard/flows/watched-folders/${folder.folder_name}/" class="btn btn-view-data-small">View Data</a>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            inactiveFoldersList.innerHTML = html;
+        } else {
+            inactiveFoldersList.innerHTML = `
+                <div class="no-watches-compact">
+                    <p>No previously imported data found.</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Failed to load inactive folders:', error);
+        inactiveFoldersList.innerHTML = `
+            <div class="error-message">
+                Failed to load inactive folders. Please try again.
+            </div>
+        `;
+    }
+}
+
+// Load last import information
+async function loadLastImportInfo() {
+    const lastImportDiv = document.getElementById('last-import-info');
+    
+    try {
+        const response = await fetch('/api/google-sheets/last-import/');
+        const data = await response.json();
+        
+        if (data.last_import) {
+            const importInfo = data.last_import;
+            let statusColor = importInfo.status === 'completed' ? '#28a745' : 
+                             importInfo.status === 'partial' ? '#ffc107' : '#dc3545';
+            
+            lastImportDiv.innerHTML = `
+                <div style="line-height: 1.4;">
+                    <div><strong>Last import:</strong> ${importInfo.formatted_time}</div>
+                    <div style="font-size: 0.75rem; color: #333;">
+                        ${importInfo.filename} - ${importInfo.rows_inserted} new, ${importInfo.rows_updated} updated
+                        ${importInfo.rows_quarantined > 0 ? `, ${importInfo.rows_quarantined} quarantined` : ''}
+                    </div>
+                </div>
+            `;
+        } else {
+            lastImportDiv.innerHTML = `
+                <div style="color: #999; font-style: italic;">
+                    No imports completed yet
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Failed to load import info:', error);
+        lastImportDiv.innerHTML = `
+            <div style="color: #dc3545; font-size: 0.75rem;">
+                Error loading import info
+            </div>
+        `;
+    }
+}
+
+// Get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Add Folder Modal functions
+function openAddFolderModal() {
+    document.getElementById('addFolderModal').style.display = 'flex';
+    document.getElementById('folderUrl').focus();
+}
+
+function closeAddFolderModal() {
+    document.getElementById('addFolderModal').style.display = 'none';
+    // Reset form
+    document.getElementById('folderUrl').value = '';
+    document.getElementById('folderValidation').style.display = 'none';
+    document.getElementById('validateBtn').style.display = 'inline-block';
+    document.getElementById('addBtn').style.display = 'none';
+}
+
+function extractFolderId(url) {
+    // Extract folder ID from Google Drive URL
+    const regex = /\/folders\/([a-zA-Z0-9-_]+)/;
+    const match = url.match(regex);
+    return match ? match[1] : url; // Return ID if found, otherwise assume it's already an ID
+}
+
+async function validateFolder() {
+    const folderUrl = document.getElementById('folderUrl').value.trim();
+    
+    if (!folderUrl) {
+        alert('Please enter a Google Drive folder URL or ID');
+        return;
+    }
+    
+    const folderId = extractFolderId(folderUrl);
+    const validateBtn = document.getElementById('validateBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const folderInfo = document.getElementById('folderInfo');
+    const folderError = document.getElementById('folderError');
+    
+    try {
+        // Show loading state
+        validateBtn.style.display = 'none';
+        loadingSpinner.style.display = 'block';
+        document.getElementById('folderValidation').style.display = 'block';
+        folderInfo.style.display = 'none';
+        folderError.style.display = 'none';
+        
+        const response = await fetch('/api/google-drive/validate-folder/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ folder_id: folderId })
+        });
+        
+        const data = await response.json();
+        
+        loadingSpinner.style.display = 'none';
+        
+        if (data.status === 'success') {
+            // Show folder info
+            document.getElementById('folderName').textContent = data.folder_name;
+            document.getElementById('folderFileCount').textContent = data.file_count;
+            document.getElementById('folderOwner').textContent = data.owner;
+            document.getElementById('folderLastModified').textContent = new Date(data.last_modified).toLocaleString();
+            
+            folderInfo.style.display = 'block';
+            document.getElementById('addBtn').style.display = 'inline-block';
+        } else {
+            folderError.textContent = data.error || 'Unable to access folder';
+            folderError.style.display = 'block';
+            validateBtn.style.display = 'inline-block';
+        }
+        
+    } catch (error) {
+        console.error('Validation error:', error);
+        loadingSpinner.style.display = 'none';
+        folderError.textContent = 'Network error. Please try again.';
+        folderError.style.display = 'block';
+        validateBtn.style.display = 'inline-block';
+    }
+}
+
+async function addFolder() {
+    const folderUrl = document.getElementById('folderUrl').value.trim();
+    const folderId = extractFolderId(folderUrl);
+    
+    try {
+        // The validate-folder endpoint already adds the folder to the database
+        // So we just need to close the modal and refresh the list
+        alert('Folder added successfully! You can now import data from this folder using the "Import Bookings" button.');
+        closeAddFolderModal();
+        // Refresh the available folders list
+        loadAvailableFolders();
+        
+    } catch (error) {
+        console.error('Add folder error:', error);
+        alert('Failed to add folder. Please try again.');
+    }
+}
+
+// Clear Folder Data
+async function clearFolderData(folderName) {
+    if (!confirm(`Are you sure you want to clear ALL imported data for "${folderName}"? This will delete all bookings and related data for this folder. This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/google-sheets/clear-folder-data/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ folder_name: folderName })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            alert(`Successfully cleared all data for "${folderName}"!\n\nDeleted:\n- ${data.deleted_counts.bookings} bookings\n- ${data.deleted_counts.ingestion_runs} import runs\n- ${data.deleted_counts.processed_files} processed files`);
+            // Refresh the available folders list and inactive folders
+            loadAvailableFolders();
+            loadInactiveFolders();
+        } else {
+            alert('Failed to clear folder data: ' + (data.error || 'Unknown error'));
+        }
+        
+    } catch (error) {
+        console.error('Clear data error:', error);
+        alert('Network error while clearing data. Please try again.');
+    }
+}
+
+// Import Booking Data
+async function importBookingData() {
+    const importBtn = document.querySelector('.btn-import');
+    
+    if (!confirm('Import booking data from Google Sheets in all available folders? This will merge with existing data.')) {
+        return;
+    }
+    
+    try {
+        // Disable button and show loading state
+        importBtn.disabled = true;
+        importBtn.textContent = 'Importing...';
+        
+        const response = await fetch('/api/google-sheets/import-bookings/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({})
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            const summary = data.summary;
+            let message = `Import completed successfully!\n\n`;
+            message += `📁 Folders processed: ${summary.folders_processed}\n`;
+            message += `📄 Files discovered: ${summary.files_discovered}\n`;
+            message += `✅ Files processed: ${summary.files_processed}\n`;
+            message += `➕ New bookings: ${summary.bookings_inserted}\n`;
+            message += `📝 Updated bookings: ${summary.bookings_updated}\n`;
+            message += `⏭️ Ignored (older data): ${summary.bookings_ignored}\n`;
+            
+            if (summary.conflicts_detected > 0) {
+                message += `⚠️ Conflicts detected: ${summary.conflicts_detected}\n`;
+            }
+            
+            if (summary.rows_quarantined > 0) {
+                message += `🚨 Rows quarantined: ${summary.rows_quarantined}\n`;
+            }
+            
+            if (summary.files_failed > 0) {
+                message += `❌ Files failed: ${summary.files_failed}\n`;
+            }
+            
+            alert(message);
+            // Refresh the last import info
+            loadLastImportInfo();
+        } else {
+            alert('Import failed: ' + (data.error || 'Unknown error'));
+        }
+        
+    } catch (error) {
+        console.error('Import error:', error);
+        alert('Network error during import. Please try again.');
+    } finally {
+        // Re-enable button
+        importBtn.disabled = false;
+        importBtn.textContent = 'Import Bookings';
+    }
+}
+
+// Connect to Database Modal functions
+function openConnectDatabaseModal() {
+    document.getElementById('connectDatabaseModal').style.display = 'flex';
+    loadAvailableDatabases();
+}
+
+function closeConnectDatabaseModal() {
+    document.getElementById('connectDatabaseModal').style.display = 'none';
+}
+
+async function loadAvailableDatabases() {
+    const databaseList = document.getElementById('database-list');
+    
+    try {
+        // Use the list inactive folders API to get folders with data
+        const response = await fetch('/api/google-drive/list-inactive-folders/');
+        const data = await response.json();
+        
+        if (data.inactive_folders && data.inactive_folders.length > 0) {
+            let html = '';
+            
+            for (const folder of data.inactive_folders) {
+                // Get booking count for this folder
+                try {
+                    const folderResponse = await fetch(`/api/google-sheets/folder-stats/?folder_name=${encodeURIComponent(folder.folder_name)}`);
+                    const folderData = await folderResponse.json();
+                    const bookingCount = folderData.booking_count || folder.booking_count || 0;
+                    
+                    html += `
+                        <div class="database-item">
+                            <div class="database-info">
+                                <h4>${folder.folder_name}</h4>
+                                <p>Google Drive Folder Database</p>
+                                <div class="database-stats">${bookingCount} booking records available</div>
+                            </div>
+                            <button class="btn-select-db" onclick="connectToDatabase('${folder.folder_name}')">
+                                Connect
+                            </button>
+                        </div>
+                    `;
+                } catch (err) {
+                    // If stats API fails, still show the folder
+                    html += `
+                        <div class="database-item">
+                            <div class="database-info">
+                                <h4>${folder.folder_name}</h4>
+                                <p>Google Drive Folder Database</p>
+                                <div class="database-stats">${folder.booking_count || 0} booking records available</div>
+                            </div>
+                            <button class="btn-select-db" onclick="connectToDatabase('${folder.folder_name}')">
+                                Connect
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+            
+            databaseList.innerHTML = html;
+        } else {
+            databaseList.innerHTML = `
+                <div class="no-data" style="text-align: center; padding: 2rem; color: #666;">
+                    <p>No databases available.</p>
+                    <p>Import some data first to create a database.</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Failed to load databases:', error);
+        databaseList.innerHTML = `
+            <div class="error-message" style="text-align: center; padding: 2rem; color: #dc3545;">
+                Failed to load available databases.
+            </div>
+        `;
+    }
+}
+
+async function connectToDatabase(folderName) {
+    try {
+        // For now, we'll store the connection in localStorage
+        // In a real implementation, this would be saved to the backend
+        const connection = {
+            workflow: 'SALT Long Weekend Project',
+            database: folderName,
+            connected_at: new Date().toISOString()
+        };
+        
+        localStorage.setItem('workflow_database_connection', JSON.stringify(connection));
+        
+        // Update the connection status display
+        updateWorkflowConnectionStatus(connection);
+        
+        // Close the modal
+        closeConnectDatabaseModal();
+        
+        // Show success message
+        alert(`Successfully connected to ${folderName} database!`);
+        
+    } catch (error) {
+        console.error('Failed to connect to database:', error);
+        alert('Failed to connect to database. Please try again.');
+    }
+}
+
+function updateWorkflowConnectionStatus(connection) {
+    const statusDiv = document.getElementById('workflow-connection-status');
+    if (statusDiv && connection) {
+        const connectionInfo = statusDiv.querySelector('.connection-info');
+        connectionInfo.innerHTML = `
+            <div class="connection-status-connected">
+                ✓ Connected to ${connection.database} database
+            </div>
+            <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">
+                Connected on ${new Date(connection.connected_at).toLocaleDateString('en-AU')}
+            </div>
+        `;
+    }
+}
+
+function loadWorkflowConnectionStatus() {
+    try {
+        const connection = JSON.parse(localStorage.getItem('workflow_database_connection'));
+        if (connection) {
+            updateWorkflowConnectionStatus(connection);
+        } else {
+            const statusDiv = document.getElementById('workflow-connection-status');
+            if (statusDiv) {
+                const connectionInfo = statusDiv.querySelector('.connection-info');
+                connectionInfo.innerHTML = `
+                    <div class="connection-status-disconnected">
+                        No database connected
+                    </div>
+                `;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load connection status:', error);
+    }
+}
+
+// Open Workflow function
+function openWorkflow() {
+    try {
+        // Get the connected database from localStorage
+        const connection = JSON.parse(localStorage.getItem('workflow_database_connection'));
+        
+        if (connection && connection.database) {
+            // Open workflow page with the connected database parameter
+            window.location.href = `/dashboard/workflows/guest-extra-night/?database=${encodeURIComponent(connection.database)}`;
+        } else {
+            // No connection found, open with default or show message
+            alert('Please connect to a database first using the "Connect to Database" button.');
+        }
+    } catch (error) {
+        console.error('Error opening workflow:', error);
+        // Fallback: open without database parameter
+        window.location.href = '/dashboard/workflows/guest-extra-night/';
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const addFolderModal = document.getElementById('addFolderModal');
+    const connectModal = document.getElementById('connectDatabaseModal');
+    
+    if (event.target === addFolderModal) {
+        closeAddFolderModal();
+    } else if (event.target === connectModal) {
+        closeConnectDatabaseModal();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,781 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Guest Extra Night Workflow - Dashboard{% endblock %}
+{% block page_title %}📋 Guest Extra Night Workflow{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<div class="breadcrumb-nav">
+    <a href="{% url 'dashboard:home' %}">Dashboard</a> 
+    <span>&gt;</span> 
+    <a href="{% url 'dashboard:flows' %}">Flows</a> 
+    <span>&gt;</span> 
+    <span>Workflows</span> 
+    <span>&gt;</span> 
+    <span class="current">Guest Extra Night</span>
+</div>
+
+{% if error %}
+<div class="content-card">
+    <div class="error-state">
+        <h3>Database Connection Required</h3>
+        <p>{{ error }}</p>
+        <a href="{% url 'dashboard:flows' %}" class="btn">Go to Flows</a>
+    </div>
+</div>
+{% else %}
+
+<!-- Workflow Header -->
+<div class="content-card">
+    <div class="workflow-header">
+        <div class="workflow-info">
+            <h2>🌴 Guest Extra Night Workflow</h2>
+            <p class="workflow-description">
+                <strong>Goal:</strong> Guests stay extra night Sunday or late checkout.<br>
+                <strong>Database:</strong> {{ connected_folder.folder_name }} ({{ summary.total_eligible }} eligible guests)
+            </p>
+        </div>
+        <div class="workflow-actions">
+            <a href="{% url 'dashboard:flows' %}" class="btn btn-secondary">← Back to Flows</a>
+            <button class="btn btn-refresh" onclick="location.reload()">🔄 Refresh Data</button>
+        </div>
+    </div>
+    
+    <!-- Workflow Info Section -->
+    <div class="workflow-info-section">
+        <div class="info-cards-container">
+            <!-- Workflow Process Card -->
+            <div class="info-card">
+                <div class="summary-line expandable" onclick="toggleWorkflowProcess()">
+                    <span class="summary-label">📋 Workflow Process</span>
+                    <span class="expand-icon" id="workflow-expand-icon">▼</span>
+                </div>
+                <div class="workflow-process-dropdown" id="workflow-process-dropdown" style="display: none;">
+                    <div class="steps-lines">
+                        <div class="step-line">
+                            <span class="step-number">1</span>
+                            <span class="step-label">Guest Identification:</span>
+                            <span class="step-description">checkout Sunday, staying > 2 nights. Room not booked for Sunday Night</span>
+                        </div>
+                        <div class="step-line">
+                            <span class="step-number">2</span>
+                            <span class="step-label">Timing Flags:</span>
+                            <span class="step-description">T-14 days: System flags eligible guests, T-1 day: Re-offer if not accepted</span>
+                        </div>
+                        <div class="step-line">
+                            <span class="step-number">3</span>
+                            <span class="step-label">SMS Offers:</span>
+                            <span class="step-description">$150 Sunday night stay, $75 late checkout (3pm)</span>
+                        </div>
+                        <div class="step-line">
+                            <span class="step-number">4</span>
+                            <span class="step-label">Guest Response:</span>
+                            <span class="step-description">Reply 1: Extra night, Reply 2: Late checkout, STOP: Opt-out permanently</span>
+                        </div>
+                        <div class="step-line">
+                            <span class="step-number">5</span>
+                            <span class="step-label">Payment Pathway:</span>
+                            <span class="step-description">Confirmation SMS sent, Reception contacted to finalize</span>
+                        </div>
+                        <div class="step-line">
+                            <span class="step-number">6</span>
+                            <span class="step-label">Reception Finalization:</span>
+                            <span class="step-description">Booking flagged for staff, Payment collected at check-in</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Eligible Guests Card -->
+            <div class="info-card">
+                <div class="summary-line expandable" onclick="toggleEligibleGuests()">
+                    <span class="summary-label">Total Eligible Guests (Sunday checkout, >2 nights)</span>
+                    <span class="summary-number">{{ summary.total_eligible }}</span>
+                    <span class="expand-icon" id="expand-icon">▼</span>
+                </div>
+                <div class="eligible-guests-dropdown" id="eligible-guests-dropdown" style="display: none;">
+                    {% if eligible_grouped_sorted %}
+                        <div class="guests-table-container">
+                            <table class="guests-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Booking #</th>
+                                        <th>Check-in</th>
+                                        <th>Check-out</th>
+                                        <th>Room</th>
+                                        <th>Rate</th>
+                                        <th>T-14 Date</th>
+                                        <th>T-1 Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for checkout_group in eligible_grouped_sorted %}
+                                        <!-- Group header row (clickable accordion) -->
+                                        <tr class="group-header accordion-header" onclick="toggleEligibleGroup('{{ forloop.counter }}')">
+                                            <td colspan="8">
+                                                <span class="accordion-icon" id="eligible-icon-{{ forloop.counter }}">▼</span>
+                                                <strong>{{ checkout_group.checkout_date|date:"D d-m-Y" }} Checkout ({{ checkout_group.guest_count }} guest{{ checkout_group.guest_count|pluralize }})</strong>
+                                            </td>
+                                        </tr>
+                                        <!-- Guest rows for this group (collapsible) -->
+                                        <tbody id="eligible-group-{{ forloop.counter }}" class="accordion-content">
+                                        {% for guest in checkout_group.guests %}
+                                        <tr>
+                                            <td><strong>{{ guest.booking.first_name }} {{ guest.booking.surname }}</strong></td>
+                                            <td>{{ guest.booking.booking_number }}</td>
+                                            <td>{{ guest.booking.arrive_date|date:"D d-m-Y" }}</td>
+                                            <td>{{ guest.booking.depart_date|date:"D d-m-Y" }}</td>
+                                            <td>{{ guest.booking.room_number|default:"-" }} ({{ guest.booking.room_type|default:"Standard" }})</td>
+                                            <td>{{ guest.booking.rate|default:"Standard Rate" }}</td>
+                                            <!-- T-14 Date with status -->
+                                            <td>
+                                                {{ guest.t14_date|date:"D d-m-Y" }}
+                                                {% if guest.t14_status == 'ready' %}
+                                                    <br><span class="countdown-badge ready">Send Today</span>
+                                                {% elif guest.t14_status == 'countdown' %}
+                                                    <br><span class="countdown-badge countdown">
+                                                        {% if guest.t14_days > 0 %}
+                                                            {{ guest.t14_days }}d
+                                                            {% if guest.t14_hours > 0 %} {{ guest.t14_hours }}h{% endif %}
+                                                        {% else %}
+                                                            {{ guest.t14_hours }}h
+                                                        {% endif %}
+                                                    </span>
+                                                {% elif guest.t14_status == 'past' %}
+                                                    <br><span class="countdown-badge past">T-14 Passed</span>
+                                                {% endif %}
+                                            </td>
+                                            <!-- T-1 Date with status -->
+                                            <td>
+                                                {{ guest.t1_date|date:"D d-m-Y" }}
+                                                {% if guest.t1_status == 'ready' %}
+                                                    <br><span class="countdown-badge t1-ready">Send Today</span>
+                                                {% elif guest.t1_status == 'countdown' %}
+                                                    <br><span class="countdown-badge t1-countdown">
+                                                        {% if guest.t1_days > 0 %}
+                                                            {{ guest.t1_days }}d
+                                                            {% if guest.t1_hours > 0 %} {{ guest.t1_hours }}h{% endif %}
+                                                        {% else %}
+                                                            {{ guest.t1_hours }}h
+                                                        {% endif %}
+                                                    </span>
+                                                {% elif guest.t1_status == 'past' %}
+                                                    <br><span class="countdown-badge t1-past">Checked In</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="no-guests-message">
+                            No eligible guests found at this time.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endif %}
+
+<style>
+/* Breadcrumb Navigation */
+.breadcrumb-nav {
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.breadcrumb-nav a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.breadcrumb-nav a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-nav .current {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Workflow Header */
+.workflow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.workflow-info h2 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+}
+
+.workflow-description {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+.workflow-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-refresh {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-refresh:hover {
+    background-color: #5a6268;
+}
+
+/* Workflow Info Section */
+.workflow-info-section {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.info-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.info-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 1.25rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.info-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Summary Lines */
+.workflow-summary {
+    margin-bottom: 2rem;
+}
+
+.summary-lines {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.info-card .summary-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    border: none;
+}
+
+.summary-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.summary-line:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.summary-line:first-child {
+    padding-top: 0;
+}
+
+.summary-label {
+    font-weight: 500;
+    color: #333;
+    font-size: 0.85rem;
+    flex: 1;
+}
+
+.summary-number {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #2c3e50;
+    min-width: 30px;
+    text-align: right;
+}
+
+.summary-number.pending {
+    color: #856404;
+}
+
+.summary-number.urgent {
+    color: #721c24;
+}
+
+.summary-number.monitoring {
+    color: #0c5460;
+}
+
+/* Expandable Accordion */
+.summary-line.expandable {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.summary-line.expandable:hover {
+    background-color: #e9ecef;
+}
+
+.expand-icon {
+    font-size: 0.8rem;
+    color: #666;
+    transition: transform 0.3s ease;
+    margin-left: 0.5rem;
+}
+
+.expand-icon.rotated {
+    transform: rotate(180deg);
+}
+
+
+/* Group header styling */
+.group-header {
+    background-color: #e9ecef !important;
+    border-top: 2px solid #adb5bd;
+}
+
+.group-header td {
+    padding: 0.75rem !important;
+    font-weight: 600;
+    color: #495057 !important;
+    font-size: 0.85rem;
+}
+
+.group-header:hover {
+    background-color: #e9ecef !important;
+}
+
+/* Accordion styling */
+.accordion-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.accordion-header:hover {
+    background-color: #dee2e6 !important;
+}
+
+.accordion-icon {
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: transform 0.3s ease;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.accordion-icon.rotated {
+    transform: rotate(-90deg);
+}
+
+.accordion-content {
+    transition: opacity 0.3s ease;
+}
+
+.accordion-content.hidden {
+    display: none;
+}
+
+
+.booking-number {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.guest-dates {
+    color: #666;
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.guest-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sms-mini {
+    background-color: #28a745;
+    color: white;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-sms-mini:hover {
+    background-color: #218838;
+}
+
+.countdown-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.countdown-label {
+    color: #666;
+    font-size: 0.75rem;
+}
+
+/* Table badges and indicators */
+.countdown-badge {
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.countdown-badge.ready {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.countdown-badge.countdown {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.countdown-badge.past {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.countdown-badge.t1-ready {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.countdown-badge.t1-countdown {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.countdown-badge.t1-past {
+    background-color: #e2e3e5;
+    color: #495057;
+}
+
+.status-indicator {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Table action buttons */
+.btn-table-sms,
+.btn-table-view {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-table-sms {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-table-sms:hover {
+    background-color: #218838;
+}
+
+.btn-table-view {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-table-view:hover {
+    background-color: #5a6268;
+}
+
+
+.workflow-process-dropdown {
+    margin-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+.eligible-guests-dropdown {
+    margin-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.guests-table-container {
+    overflow-x: auto;
+}
+
+.guests-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
+.guests-table th {
+    background-color: #f8f9fa;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #e9ecef;
+    font-size: 0.75rem;
+}
+
+.guests-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+    color: #666;
+    vertical-align: top;
+}
+
+.guests-table td:first-child {
+    color: #2c3e50;
+}
+
+.guests-table td strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.guests-table tr:last-child td {
+    border-bottom: none;
+}
+
+.guests-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.no-guests-message {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    font-size: 0.85rem;
+    padding: 1rem;
+}
+
+/* Workflow Steps */
+.steps-lines {
+    background-color: transparent;
+    padding: 0;
+}
+
+.step-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.step-line:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.step-line:first-child {
+    padding-top: 0;
+}
+
+.step-number {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: #0066cc;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.75rem;
+    margin-top: 0.1rem;
+}
+
+.step-label {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.85rem;
+    min-width: 120px;
+    flex-shrink: 0;
+}
+
+.step-description {
+    font-size: 0.8rem;
+    color: #666;
+    line-height: 1.4;
+    flex: 1;
+}
+
+
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: 3rem;
+}
+
+.error-state h3 {
+    margin: 0 0 1rem 0;
+    color: #e74c3c;
+}
+
+.error-state p {
+    margin: 0 0 1.5rem 0;
+    color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .workflow-header {
+        flex-direction: column;
+        align-items: start;
+        gap: 1rem;
+    }
+    
+    .info-cards-container {
+        gap: 0.5rem;
+    }
+    
+    .info-card {
+        padding: 1rem;
+    }
+    
+    .summary-line {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .summary-label {
+        min-width: auto;
+    }
+    
+    .step-line {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .step-label {
+        min-width: auto;
+    }
+    
+    .guests-table {
+        font-size: 0.7rem;
+    }
+    
+    .guests-table th,
+    .guests-table td {
+        padding: 0.4rem 0.5rem;
+    }
+    
+    
+}
+</style>
+
+<script>
+
+function toggleWorkflowProcess() {
+    const dropdown = document.getElementById('workflow-process-dropdown');
+    const icon = document.getElementById('workflow-expand-icon');
+    
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
+        icon.classList.add('rotated');
+        icon.textContent = '▲';
+    } else {
+        dropdown.style.display = 'none';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    }
+}
+
+function toggleEligibleGuests() {
+    const dropdown = document.getElementById('eligible-guests-dropdown');
+    const icon = document.getElementById('expand-icon');
+    
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
+        icon.classList.add('rotated');
+        icon.textContent = '▲';
+    } else {
+        dropdown.style.display = 'none';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    }
+}
+
+
+function toggleEligibleGroup(groupId) {
+    const content = document.getElementById('eligible-group-' + groupId);
+    const icon = document.getElementById('eligible-icon-' + groupId);
+    
+    if (content.style.display === 'none') {
+        content.style.display = '';
+        icon.classList.remove('rotated');
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.classList.add('rotated');
+        icon.textContent = '▶';
+    }
+}
+
+
+</script>
+{% endblock %}

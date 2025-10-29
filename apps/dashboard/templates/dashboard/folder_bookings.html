@@ -1,0 +1,619 @@
+{% extends 'dashboard/base.html' %}
+{% load timezone_extras %}
+
+{% block title %}{{ folder.folder_name }} Bookings - Dashboard{% endblock %}
+{% block page_title %}{{ folder.folder_name }} Bookings Data{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<div class="breadcrumb-nav">
+    <a href="{% url 'dashboard:home' %}">Dashboard</a> 
+    <span>&gt;</span> 
+    <a href="{% url 'dashboard:flows' %}">Flows</a> 
+    <span>&gt;</span> 
+    <span>Watched Folders</span> 
+    <span>&gt;</span> 
+    <span class="current">{{ folder.folder_name }}</span>
+</div>
+
+<!-- Header Section -->
+<div class="content-card">
+    <div class="page-header">
+        <div class="header-info">
+            <h2>{{ folder.folder_name }} Bookings</h2>
+            <p class="folder-details">
+                <strong>Folder:</strong> {{ folder.folder_name }} | 
+                <strong>Total Records:</strong> {{ total_bookings }} | 
+                <strong>Owner:</strong> {{ folder.owner_email }}
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'dashboard:flows' %}" class="btn btn-secondary">
+                ← Back to Flows
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <form method="GET" class="filters-form">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="search">Search:</label>
+                    <input type="text" id="search" name="search" value="{{ current_filters.search }}" 
+                           placeholder="Booking number, guest name, email...">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="booking_status">Booking Status:</label>
+                    <select id="booking_status" name="booking_status">
+                        <option value="">All Statuses</option>
+                        {% for status in booking_statuses %}
+                        <option value="{{ status }}" {% if status == current_filters.booking_status %}selected{% endif %}>
+                            {{ status }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="import_status">Import Status:</label>
+                    <select id="import_status" name="import_status">
+                        <option value="">All Imports</option>
+                        <option value="completed" {% if current_filters.import_status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="partial" {% if current_filters.import_status == 'partial' %}selected{% endif %}>Partial</option>
+                        <option value="failed" {% if current_filters.import_status == 'failed' %}selected{% endif %}>Failed</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="date_from">Arrive From:</label>
+                    <input type="date" id="date_from" name="date_from" value="{{ current_filters.date_from }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date_to">Arrive To:</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ current_filters.date_to }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="per_page">Per Page:</label>
+                    <select id="per_page" name="per_page">
+                        <option value="10" {% if current_filters.per_page == 10 %}selected{% endif %}>10</option>
+                        <option value="25" {% if current_filters.per_page == 25 %}selected{% endif %}>25</option>
+                        <option value="50" {% if current_filters.per_page == 50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if current_filters.per_page == 100 %}selected{% endif %}>100</option>
+                    </select>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="?" class="btn btn-secondary">Clear</a>
+                    <a href="?export=csv{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                       class="btn btn-export">Export CSV</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Stats -->
+    {% if recent_imports %}
+    <div class="summary-stats">
+        <h3>Recent Imports</h3>
+        <div class="imports-list">
+            {% for import_run in recent_imports %}
+            <div class="import-item">
+                <span class="filename">{{ import_run.filename }}</span>
+                <span class="date">{{ import_run.completed_at|qld_timezone }}</span>
+                <span class="status status-{{ import_run.status }}">{{ import_run.status }}</span>
+                <span class="stats">{{ import_run.rows_inserted }} new, {{ import_run.rows_updated }} updated</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bookings Table -->
+    <div class="table-container">
+        {% if bookings %}
+        <table class="bookings-table">
+            <thead>
+                <tr>
+                    <th>Booking #</th>
+                    <th>Guest Name</th>
+                    <th>Arrive Date</th>
+                    <th>Depart Date</th>
+                    <th>Room</th>
+                    <th>Room Type</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Import Date</th>
+                    <th>Source</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr class="booking-row" onclick="toggleBookingDetails({{ booking.id }})">
+                    <td><strong>{{ booking.booking_number }}</strong></td>
+                    <td>{{ booking.first_name }} {{ booking.surname }}</td>
+                    <td>{% if booking.arrive_date %}{{ booking.arrive_date|date:"d-m-Y" }}{% else %}-{% endif %}</td>
+                    <td>{% if booking.depart_date %}{{ booking.depart_date|date:"d-m-Y" }}{% else %}-{% endif %}</td>
+                    <td>{{ booking.room_number|default:"-" }}</td>
+                    <td>{{ booking.room_type|default:"-" }}</td>
+                    <td><span class="status-badge status-{{ booking.status|lower }}">{{ booking.status }}</span></td>
+                    <td>${{ booking.total_amount|default:"0" }}</td>
+                    <td>
+                        {% if booking.ingestion_run.completed_at %}
+                            {{ booking.ingestion_run.completed_at|date:"d-m-Y H:i" }}
+                        {% else %}
+                            Processing...
+                        {% endif %}
+                    </td>
+                    <td class="source-file">{{ booking.ingestion_run.filename }}</td>
+                </tr>
+                
+                <!-- Expandable details row -->
+                <tr id="details-{{ booking.id }}" class="booking-details" style="display: none;">
+                    <td colspan="10">
+                        <div class="details-content">
+                            <div class="details-grid">
+                                <div class="details-section">
+                                    <h4>Guest Information</h4>
+                                    <p><strong>Email:</strong> {{ booking.email|default:"-" }}</p>
+                                    <p><strong>Mobile:</strong> {{ booking.mobile|default:"-" }}</p>
+                                    <p><strong>Address:</strong> {{ booking.suburb|default:"-" }}, {{ booking.state|default:"-" }} {{ booking.post_code|default:"" }}</p>
+                                </div>
+                                
+                                <div class="details-section">
+                                    <h4>Booking Details</h4>
+                                    <p><strong>Room Type:</strong> {{ booking.room_type|default:"-" }}</p>
+                                    <p><strong>Agent:</strong> {{ booking.agent|default:"-" }}</p>
+                                    <p><strong>Agent Ref:</strong> {{ booking.agent_ref|default:"-" }}</p>
+                                    <p><strong>Region:</strong> {{ booking.region|default:"-" }}</p>
+                                </div>
+                                
+                                <div class="details-section">
+                                    <h4>Financial</h4>
+                                    <p><strong>Total Amount:</strong> ${{ booking.total_amount|default:"0" }}</p>
+                                    <p><strong>Balance:</strong> ${{ booking.balance|default:"0" }}</p>
+                                    <p><strong>Deposit Required:</strong> ${{ booking.deposit_required|default:"0" }}</p>
+                                    <p><strong>Received:</strong> ${{ booking.received_amount|default:"0" }}</p>
+                                </div>
+                                
+                                <div class="details-section">
+                                    <h4>Import Information</h4>
+                                    <p><strong>Source File:</strong> {{ booking.ingestion_run.filename }}</p>
+                                    <p><strong>Import Status:</strong> 
+                                        <span class="status-badge status-{{ booking.ingestion_run.status }}">{{ booking.ingestion_run.status }}</span>
+                                    </p>
+                                    <p><strong>Imported:</strong> 
+                                        {% if booking.ingestion_run.completed_at %}
+                                            {{ booking.ingestion_run.completed_at|qld_timezone_full }}
+                                        {% else %}
+                                            Processing...
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            {% if booking.guest_request %}
+                            <div class="guest-request">
+                                <h4>Guest Request</h4>
+                                <p>{{ booking.guest_request }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Pagination -->
+        {% if bookings.has_other_pages %}
+        <div class="pagination-container">
+            <div class="pagination-info">
+                Showing {{ bookings.start_index }} to {{ bookings.end_index }} of {{ bookings.paginator.count }} bookings
+            </div>
+            <div class="pagination">
+                {% if bookings.has_previous %}
+                    <a href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" class="page-link">&laquo; First</a>
+                    <a href="?page={{ bookings.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" class="page-link">Previous</a>
+                {% endif %}
+                
+                <span class="current-page">
+                    Page {{ bookings.number }} of {{ bookings.paginator.num_pages }}
+                </span>
+                
+                {% if bookings.has_next %}
+                    <a href="?page={{ bookings.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" class="page-link">Next</a>
+                    <a href="?page={{ bookings.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" class="page-link">Last &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="no-data">
+            <p>No bookings found for the current filters.</p>
+            <p>Try adjusting your search criteria or <a href="?">clearing all filters</a>.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Breadcrumb Navigation */
+.breadcrumb-nav {
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.breadcrumb-nav a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.breadcrumb-nav a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-nav .current {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.header-info h2 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+}
+
+.folder-details {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* Filters Section */
+.filters-section {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.filter-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: end;
+}
+
+.filter-row:last-child {
+    margin-bottom: 0;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+
+.filter-group label {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: end;
+}
+
+.btn-export {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.btn-export:hover {
+    background-color: #138496;
+}
+
+/* Summary Stats */
+.summary-stats {
+    margin-bottom: 2rem;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.summary-stats h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.imports-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.import-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #e1e5e9;
+}
+
+.import-item .filename {
+    font-weight: 600;
+    color: #2c3e50;
+    min-width: 150px;
+}
+
+.import-item .date {
+    color: #666;
+    min-width: 120px;
+}
+
+.import-item .stats {
+    color: #333;
+    font-size: 0.8rem;
+}
+
+/* Table Styles */
+.table-container {
+    overflow-x: auto;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+}
+
+.bookings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.bookings-table th {
+    background-color: #f8f9fa;
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e1e5e9;
+    color: #333;
+    white-space: nowrap;
+}
+
+.bookings-table td {
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+}
+
+.booking-row {
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+
+.booking-row:hover {
+    background-color: #f8f9fa;
+}
+
+.booking-details {
+    background-color: #fafbfc;
+}
+
+.booking-details td {
+    padding: 0;
+}
+
+.details-content {
+    padding: 1rem;
+    border-top: 2px solid #e1e5e9;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.details-section h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.95rem;
+    color: #2c3e50;
+    border-bottom: 1px solid #e1e5e9;
+    padding-bottom: 0.25rem;
+}
+
+.details-section p {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.guest-request {
+    border-top: 1px solid #e1e5e9;
+    padding-top: 1rem;
+}
+
+.guest-request h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+    color: #2c3e50;
+}
+
+.guest-request p {
+    margin: 0;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: #666;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-completed { background-color: #d4edda; color: #155724; }
+.status-partial { background-color: #fff3cd; color: #856404; }
+.status-failed { background-color: #f8d7da; color: #721c24; }
+.status-booking { background-color: #cce5ff; color: #0066cc; }
+.status-confirmed { background-color: #d4edda; color: #155724; }
+.status-cancelled { background-color: #f8d7da; color: #721c24; }
+
+/* Source file column */
+.source-file {
+    font-size: 0.75rem;
+    color: #666;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Pagination */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e1e5e9;
+}
+
+.pagination-info {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.page-link {
+    padding: 0.5rem 0.75rem;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #0066cc;
+    font-size: 0.85rem;
+}
+
+.page-link:hover {
+    background-color: #f0f0f0;
+}
+
+.current-page {
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.85rem;
+}
+
+/* No Data State */
+.no-data {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+}
+
+.no-data p {
+    margin-bottom: 0.5rem;
+}
+
+.no-data a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.no-data a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .filter-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-group {
+        min-width: auto;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: start;
+        gap: 1rem;
+    }
+    
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .pagination-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+</style>
+
+<script>
+function toggleBookingDetails(bookingId) {
+    const detailsRow = document.getElementById('details-' + bookingId);
+    if (detailsRow.style.display === 'none') {
+        detailsRow.style.display = 'table-row';
+    } else {
+        detailsRow.style.display = 'none';
+    }
+}
+
+// Auto-submit form when select inputs change
+document.addEventListener('DOMContentLoaded', function() {
+    const selects = document.querySelectorAll('.filters-form select');
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}
