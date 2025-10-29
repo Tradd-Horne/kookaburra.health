@@ -499,7 +499,7 @@
                     <a href="{% url 'users:logout' %}" class="btn btn-join">Log Out</a>
                 {% else %}
                     <button class="btn btn-login" id="loginBtn">Log In</button>
-                    <a href="{% url 'users:signup' %}" class="btn btn-join">Join Waitlist</a>
+                    <button class="btn btn-join" id="signupBtn">Join Waitlist</button>
                 {% endif %}
             </div>
         </div>
@@ -554,8 +554,35 @@
                 <button type="submit" class="login-submit-btn">Log In</button>
             </form>
             <div class="login-links">
-                <p>Don't have an account? <a href="{% url 'users:signup' %}">Sign up</a></p>
-                <p><a href="{% url 'users:password_reset' %}">Forgot your password?</a></p>
+                <p><a href="#" id="showSignup">Sign up</a></p>
+                <p><a href="{% url 'users:password_reset' %}">Forgot password?</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Overlay -->
+    <div class="login-overlay" id="signupOverlay">
+        <div class="login-form-container">
+            <button class="login-close" id="closeSignup">×</button>
+            <h2>Sign Up</h2>
+            <form method="post" action="{% url 'users:signup' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="text" name="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password1" placeholder="Password" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password2" placeholder="Confirm Password" required>
+                </div>
+                <button type="submit" class="login-submit-btn">Sign Up</button>
+            </form>
+            <div class="login-links">
+                <p><a href="#" id="showLogin">Log in</a></p>
             </div>
         </div>
     </div>
@@ -673,11 +700,23 @@
         const loginBtn = document.getElementById('loginBtn');
         const loginOverlay = document.getElementById('loginOverlay');
         const closeLogin = document.getElementById('closeLogin');
+        const signupBtn = document.getElementById('signupBtn');
+        const signupOverlay = document.getElementById('signupOverlay');
+        const closeSignup = document.getElementById('closeSignup');
+        const showSignup = document.getElementById('showSignup');
+        const showLogin = document.getElementById('showLogin');
 
         if (loginBtn) {
             loginBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 loginOverlay.classList.add('active');
+            });
+        }
+
+        if (signupBtn) {
+            signupBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                signupOverlay.classList.add('active');
             });
         }
 
@@ -687,18 +726,55 @@
             });
         }
 
-        // Close login on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && loginOverlay.classList.contains('active')) {
+        if (closeSignup) {
+            closeSignup.addEventListener('click', function() {
+                signupOverlay.classList.remove('active');
+            });
+        }
+
+        // Switch from login to signup
+        if (showSignup) {
+            showSignup.addEventListener('click', function(e) {
+                e.preventDefault();
                 loginOverlay.classList.remove('active');
+                signupOverlay.classList.add('active');
+            });
+        }
+
+        // Switch from signup to login
+        if (showLogin) {
+            showLogin.addEventListener('click', function(e) {
+                e.preventDefault();
+                signupOverlay.classList.remove('active');
+                loginOverlay.classList.add('active');
+            });
+        }
+
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (loginOverlay.classList.contains('active')) {
+                    loginOverlay.classList.remove('active');
+                }
+                if (signupOverlay.classList.contains('active')) {
+                    signupOverlay.classList.remove('active');
+                }
             }
         });
 
-        // Close login when clicking outside
+        // Close when clicking outside
         if (loginOverlay) {
             loginOverlay.addEventListener('click', function(e) {
                 if (e.target === loginOverlay) {
                     loginOverlay.classList.remove('active');
+                }
+            });
+        }
+
+        if (signupOverlay) {
+            signupOverlay.addEventListener('click', function(e) {
+                if (e.target === signupOverlay) {
+                    signupOverlay.classList.remove('active');
                 }
             });
         }
