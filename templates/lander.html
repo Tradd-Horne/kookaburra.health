@@ -555,7 +555,7 @@
             </form>
             <div class="login-links">
                 <p><a href="#" id="showSignup">Sign up</a></p>
-                <p><a href="{% url 'users:password_reset' %}">Forgot password?</a></p>
+                <p><a href="#" id="showPasswordReset">Forgot password?</a></p>
             </div>
         </div>
     </div>
@@ -583,6 +583,25 @@
             </form>
             <div class="login-links">
                 <p><a href="#" id="showLogin">Log in</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Reset Overlay -->
+    <div class="login-overlay" id="passwordResetOverlay">
+        <div class="login-form-container">
+            <button class="login-close" id="closePasswordReset">×</button>
+            <h2>Password Reset</h2>
+            <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.95rem;">Enter your email address and we'll send you instructions to reset your password.</p>
+            <form method="post" action="{% url 'users:password_reset' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="email" name="email" placeholder="Email address" required>
+                </div>
+                <button type="submit" class="login-submit-btn">Send Reset Email</button>
+            </form>
+            <div class="login-links">
+                <p><a href="#" id="backToLogin">Back to Log in</a></p>
             </div>
         </div>
     </div>
@@ -705,6 +724,10 @@
         const closeSignup = document.getElementById('closeSignup');
         const showSignup = document.getElementById('showSignup');
         const showLogin = document.getElementById('showLogin');
+        const passwordResetOverlay = document.getElementById('passwordResetOverlay');
+        const closePasswordReset = document.getElementById('closePasswordReset');
+        const showPasswordReset = document.getElementById('showPasswordReset');
+        const backToLogin = document.getElementById('backToLogin');
 
         if (loginBtn) {
             loginBtn.addEventListener('click', function(e) {
@@ -750,6 +773,31 @@
             });
         }
 
+        // Switch from login to password reset
+        if (showPasswordReset) {
+            showPasswordReset.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginOverlay.classList.remove('active');
+                passwordResetOverlay.classList.add('active');
+            });
+        }
+
+        // Switch from password reset back to login
+        if (backToLogin) {
+            backToLogin.addEventListener('click', function(e) {
+                e.preventDefault();
+                passwordResetOverlay.classList.remove('active');
+                loginOverlay.classList.add('active');
+            });
+        }
+
+        // Close password reset
+        if (closePasswordReset) {
+            closePasswordReset.addEventListener('click', function() {
+                passwordResetOverlay.classList.remove('active');
+            });
+        }
+
         // Close on escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -758,6 +806,9 @@
                 }
                 if (signupOverlay.classList.contains('active')) {
                     signupOverlay.classList.remove('active');
+                }
+                if (passwordResetOverlay.classList.contains('active')) {
+                    passwordResetOverlay.classList.remove('active');
                 }
             }
         });
@@ -775,6 +826,14 @@
             signupOverlay.addEventListener('click', function(e) {
                 if (e.target === signupOverlay) {
                     signupOverlay.classList.remove('active');
+                }
+            });
+        }
+
+        if (passwordResetOverlay) {
+            passwordResetOverlay.addEventListener('click', function(e) {
+                if (e.target === passwordResetOverlay) {
+                    passwordResetOverlay.classList.remove('active');
                 }
             });
         }
