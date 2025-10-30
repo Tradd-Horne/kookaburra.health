@@ -318,6 +318,149 @@
             background: #8a1801;
         }
 
+        .questionnaire-steps {
+            min-height: 400px;
+            position: relative;
+        }
+
+        .questionnaire-step {
+            display: none;
+        }
+
+        .questionnaire-step.active {
+            display: block;
+        }
+
+        .step-content h3 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+        }
+
+        .step-list {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 2rem;
+        }
+
+        .step-list li {
+            margin-bottom: 1.5rem;
+            padding-left: 2.5rem;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: attr(data-number);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1.5rem;
+            height: 1.5rem;
+            background: #1a1a1a;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .step-list li strong {
+            display: block;
+            margin-bottom: 0.25rem;
+            color: #1a1a1a;
+        }
+
+        .step-list li span {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .questionnaire-nav {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-back, .btn-next {
+            flex: 1;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            background: white;
+            color: #333;
+        }
+
+        .btn-back:hover, .btn-next:hover {
+            border-color: #1a1a1a;
+            background: #fafafa;
+        }
+
+        .btn-next:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-next:disabled:hover {
+            border-color: #e0e0e0;
+            background: white;
+        }
+
+        .btn-next.enabled {
+            background: #1a1a1a;
+            color: white;
+            border-color: #1a1a1a;
+        }
+
+        .btn-next.enabled:hover {
+            background: #333;
+        }
+
+        .radio-group, .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .radio-option {
+            display: block;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio-option:hover {
+            border-color: #1a1a1a;
+            background: #fafafa;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+
+        .radio-option input[type="radio"]:checked + label {
+            font-weight: 500;
+        }
+
+        .step-intro {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .step-intro p {
+            color: #666;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
         .login-links {
             margin-top: 1rem;
             text-align: center;
@@ -693,6 +836,130 @@
         </div>
     </div>
 
+    <!-- Patients Questionnaire Overlay -->
+    <div class="login-overlay" id="patientsOverlay">
+        <div class="login-form-container">
+            <button class="login-close" id="closePatients">×</button>
+            <h2>Patient Assessment</h2>
+
+            <div class="questionnaire-steps">
+                <!-- Step 1: Introduction -->
+                <div class="questionnaire-step active" data-step="1">
+                    <div class="step-content">
+                        <h3>How your consult will work</h3>
+                        <ul class="step-list">
+                            <li data-number="1">
+                                <strong>Online Assessment</strong>
+                                <span>Answer questions about your medical history and see if Pilot's a good fit.</span>
+                            </li>
+                            <li data-number="2">
+                                <strong>Pay for your consult</strong>
+                                <span>If you're found unsuitable, you'll receive a full refund.</span>
+                            </li>
+                            <li data-number="3">
+                                <strong>Chat with a practitioner</strong>
+                                <span>Your practitioner will call to confirm your details and if suitable, discuss your treatment.</span>
+                            </li>
+                            <li data-number="4">
+                                <strong>Online Treatment delivery</strong>
+                                <span></span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-next enabled" onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Name -->
+                <div class="questionnaire-step" data-step="2">
+                    <div class="step-content">
+                        <h3>Let's start with your name</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">We require this to generate an electronic prescription if your practitioner prescribes a treatment.</p>
+                        <div class="form-group">
+                            <input type="text" id="firstName" placeholder="Legal first name *" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="lastName" placeholder="Legal last name *" required>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next" id="nameNext" disabled onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Email and Password -->
+                <div class="questionnaire-step" data-step="3">
+                    <div class="step-content">
+                        <h3>And your email?</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">This is where we'll send information from your practitioner and pharmacy.</p>
+                        <div class="form-group">
+                            <input type="email" id="email" placeholder="Email *" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="password" placeholder="Password *" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="confirmPassword" placeholder="Confirm password *" required>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next" id="emailNext" disabled onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Assessment Start -->
+                <div class="questionnaire-step" data-step="4">
+                    <div class="step-intro">
+                        <h3>Let's start your assessment</h3>
+                        <p>Please answer a few questions before your consult.</p>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next enabled" onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Sex at Birth -->
+                <div class="questionnaire-step" data-step="5">
+                    <div class="step-content">
+                        <h3>What was your sex at birth?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="sex" value="male" onchange="validateStep5()">
+                                Male
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="sex" value="female" onchange="validateStep5()">
+                                Female
+                            </label>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next" id="sexNext" disabled onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 6: Date of Birth -->
+                <div class="questionnaire-step" data-step="6">
+                    <div class="step-content">
+                        <h3>What is your date of birth?</h3>
+                        <div class="form-group">
+                            <input type="date" id="dob" required onchange="validateStep6()">
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next" id="dobNext" disabled onclick="nextStep()">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Referrers Overlay -->
     <div class="login-overlay" id="referrersOverlay">
         <div class="login-form-container">
@@ -831,6 +1098,88 @@
         // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
 
+        // Questionnaire navigation
+        let currentStep = 1;
+        const totalSteps = 6;
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                document.querySelector(`[data-step="${currentStep}"]`).classList.remove('active');
+                currentStep++;
+                document.querySelector(`[data-step="${currentStep}"]`).classList.add('active');
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                document.querySelector(`[data-step="${currentStep}"]`).classList.remove('active');
+                currentStep--;
+                document.querySelector(`[data-step="${currentStep}"]`).classList.add('active');
+            }
+        }
+
+        // Validation for Step 2 (Name)
+        const firstName = document.getElementById('firstName');
+        const lastName = document.getElementById('lastName');
+        const nameNext = document.getElementById('nameNext');
+
+        function validateStep2() {
+            if (firstName && lastName && nameNext) {
+                if (firstName.value.trim() && lastName.value.trim()) {
+                    nameNext.disabled = false;
+                    nameNext.classList.add('enabled');
+                } else {
+                    nameNext.disabled = true;
+                    nameNext.classList.remove('enabled');
+                }
+            }
+        }
+
+        if (firstName) firstName.addEventListener('input', validateStep2);
+        if (lastName) lastName.addEventListener('input', validateStep2);
+
+        // Validation for Step 3 (Email/Password)
+        const email = document.getElementById('email');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const emailNext = document.getElementById('emailNext');
+
+        function validateStep3() {
+            if (email && password && confirmPassword && emailNext) {
+                if (email.value.trim() && password.value && confirmPassword.value && password.value === confirmPassword.value) {
+                    emailNext.disabled = false;
+                    emailNext.classList.add('enabled');
+                } else {
+                    emailNext.disabled = true;
+                    emailNext.classList.remove('enabled');
+                }
+            }
+        }
+
+        if (email) email.addEventListener('input', validateStep3);
+        if (password) password.addEventListener('input', validateStep3);
+        if (confirmPassword) confirmPassword.addEventListener('input', validateStep3);
+
+        // Validation for Step 5 (Sex)
+        function validateStep5() {
+            const sexNext = document.getElementById('sexNext');
+            const selected = document.querySelector('input[name="sex"]:checked');
+            if (selected && sexNext) {
+                sexNext.disabled = false;
+                sexNext.classList.add('enabled');
+            }
+        }
+
+        // Validation for Step 6 (DOB)
+        function validateStep6() {
+            const dobNext = document.getElementById('dobNext');
+            const dob = document.getElementById('dob');
+            if (dob && dob.value && dobNext) {
+                dobNext.disabled = false;
+                dobNext.classList.add('enabled');
+            }
+        }
+
         // Login dropdown functionality
         const loginBtn = document.getElementById('loginBtn');
         const loginOverlay = document.getElementById('loginOverlay');
@@ -944,6 +1293,35 @@
             });
         }
 
+        // Patients functionality
+        const patientsBtn = document.getElementById('patientsBtn');
+        const patientsOverlay = document.getElementById('patientsOverlay');
+        const closePatients = document.getElementById('closePatients');
+
+        if (patientsBtn) {
+            patientsBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                patientsOverlay.classList.add('active');
+                currentStep = 1;
+                document.querySelectorAll('.questionnaire-step').forEach(step => step.classList.remove('active'));
+                document.querySelector('[data-step="1"]').classList.add('active');
+            });
+        }
+
+        if (closePatients) {
+            closePatients.addEventListener('click', function() {
+                patientsOverlay.classList.remove('active');
+            });
+        }
+
+        if (patientsOverlay) {
+            patientsOverlay.addEventListener('click', function(e) {
+                if (e.target === patientsOverlay) {
+                    patientsOverlay.classList.remove('active');
+                }
+            });
+        }
+
         // Referrers functionality
         const referrersBtn = document.getElementById('referrersBtn');
 
@@ -1034,7 +1412,7 @@
             }, false);
         }
 
-        // Update escape key handler to include referrers
+        // Update escape key handler to include all overlays
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 if (loginOverlay.classList.contains('active')) {
@@ -1045,6 +1423,9 @@
                 }
                 if (passwordResetOverlay.classList.contains('active')) {
                     passwordResetOverlay.classList.remove('active');
+                }
+                if (patientsOverlay.classList.contains('active')) {
+                    patientsOverlay.classList.remove('active');
                 }
                 if (referrersOverlay.classList.contains('active')) {
                     referrersOverlay.classList.remove('active');
