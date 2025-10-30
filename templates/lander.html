@@ -303,6 +303,21 @@
             background: #333;
         }
 
+        .login-submit-btn.hidden {
+            display: none;
+        }
+
+        #uploadReferralBtn {
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            background: #a91e01;
+            margin-bottom: 1.5rem;
+        }
+
+        #uploadReferralBtn:hover {
+            background: #8a1801;
+        }
+
         .login-links {
             margin-top: 1rem;
             text-align: center;
@@ -323,6 +338,70 @@
             font-size: 0.875rem;
             margin-top: 0.25rem;
             list-style: none;
+        }
+
+        .file-upload-wrapper {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .file-upload-input {
+            display: none;
+        }
+
+        .file-upload-label {
+            display: block;
+            width: 100%;
+            padding: 2rem;
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+
+        .file-upload-label:hover {
+            border-color: #1a1a1a;
+            background: #f5f5f5;
+        }
+
+        .file-upload-text {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .file-upload-text strong {
+            color: #1a1a1a;
+        }
+
+        .file-name-display {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: #f0f0f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #333;
+            display: none;
+        }
+
+        .file-name-display.active {
+            display: block;
+        }
+
+        .fax-info {
+            background: #f0f0f0;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .fax-info strong {
+            color: #1a1a1a;
+            margin-left: 0.5rem;
         }
 
         .auth-buttons {
@@ -445,6 +524,14 @@
             color: #333;
         }
 
+        .action-note {
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+        }
+
         .footer {
             text-align: center;
             padding: 2rem;
@@ -511,8 +598,8 @@
 
         <div class="search-container">
             <div class="action-buttons">
-                <button class="action-btn">for patients</button>
-                <button class="action-btn">for referrers</button>
+                <button class="action-btn" id="patientsBtn">for patients</button>
+                <button class="action-btn" id="referrersBtn">for referrers</button>
             </div>
         </div>
     </main>
@@ -603,6 +690,35 @@
             <div class="login-links">
                 <p><a href="#" id="backToLogin">Back to Log in</a></p>
             </div>
+        </div>
+    </div>
+
+    <!-- Referrers Overlay -->
+    <div class="login-overlay" id="referrersOverlay">
+        <div class="login-form-container">
+            <button class="login-close" id="closeReferrers">×</button>
+            <h2>For Referrers</h2>
+
+            <form method="post" action="#" enctype="multipart/form-data" id="referralForm">
+                {% csrf_token %}
+                <div class="file-upload-wrapper">
+                    <input type="file" id="referralFile" name="referral_file" class="file-upload-input" accept=".pdf,.doc,.docx" required>
+                    <label for="referralFile" class="file-upload-label">
+                        <div class="file-upload-text">
+                            <strong>Securely upload</strong> patient referral/ MHCP: PDF, DOC, DOCX.
+                        </div>
+                    </label>
+                    <div class="file-name-display" id="fileNameDisplay"></div>
+                </div>
+
+                <button type="submit" class="login-submit-btn hidden" id="uploadReferralBtn">Upload Referral</button>
+
+                <div class="fax-info">
+                    Fax Number: <strong>32000000</strong>
+                </div>
+
+                <p class="action-note">*when referral received, patient will be contacted within 24 hours to schedule appointment.</p>
+            </form>
         </div>
     </div>
 
@@ -728,6 +844,10 @@
         const closePasswordReset = document.getElementById('closePasswordReset');
         const showPasswordReset = document.getElementById('showPasswordReset');
         const backToLogin = document.getElementById('backToLogin');
+        const referrersOverlay = document.getElementById('referrersOverlay');
+        const closeReferrers = document.getElementById('closeReferrers');
+        const referralFile = document.getElementById('referralFile');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
 
         if (loginBtn) {
             loginBtn.addEventListener('click', function(e) {
@@ -798,20 +918,6 @@
             });
         }
 
-        // Close on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                if (loginOverlay.classList.contains('active')) {
-                    loginOverlay.classList.remove('active');
-                }
-                if (signupOverlay.classList.contains('active')) {
-                    signupOverlay.classList.remove('active');
-                }
-                if (passwordResetOverlay.classList.contains('active')) {
-                    passwordResetOverlay.classList.remove('active');
-                }
-            }
-        });
 
         // Close when clicking outside
         if (loginOverlay) {
@@ -837,6 +943,114 @@
                 }
             });
         }
+
+        // Referrers functionality
+        const referrersBtn = document.getElementById('referrersBtn');
+
+        if (referrersBtn) {
+            referrersBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                referrersOverlay.classList.add('active');
+            });
+        }
+
+        if (closeReferrers) {
+            closeReferrers.addEventListener('click', function() {
+                referrersOverlay.classList.remove('active');
+            });
+        }
+
+        if (referrersOverlay) {
+            referrersOverlay.addEventListener('click', function(e) {
+                if (e.target === referrersOverlay) {
+                    referrersOverlay.classList.remove('active');
+                }
+            });
+        }
+
+        // File upload display
+        const uploadReferralBtn = document.getElementById('uploadReferralBtn');
+        const fileUploadLabel = document.querySelector('.file-upload-label');
+
+        function handleFileSelect(file) {
+            if (file) {
+                const fileName = file.name;
+                fileNameDisplay.textContent = '📎 ' + fileName;
+                fileNameDisplay.classList.add('active');
+                // Show upload button
+                if (uploadReferralBtn) {
+                    uploadReferralBtn.classList.remove('hidden');
+                }
+            }
+        }
+
+        if (referralFile) {
+            referralFile.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                } else {
+                    fileNameDisplay.classList.remove('active');
+                    // Hide upload button
+                    if (uploadReferralBtn) {
+                        uploadReferralBtn.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        // Drag and drop functionality
+        if (fileUploadLabel) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileUploadLabel.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileUploadLabel.addEventListener(eventName, function() {
+                    fileUploadLabel.style.borderColor = '#1a1a1a';
+                    fileUploadLabel.style.background = '#f5f5f5';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileUploadLabel.addEventListener(eventName, function() {
+                    fileUploadLabel.style.borderColor = '#e0e0e0';
+                    fileUploadLabel.style.background = '#fafafa';
+                }, false);
+            });
+
+            fileUploadLabel.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    referralFile.files = files;
+                    handleFileSelect(files[0]);
+                }
+            }, false);
+        }
+
+        // Update escape key handler to include referrers
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (loginOverlay.classList.contains('active')) {
+                    loginOverlay.classList.remove('active');
+                }
+                if (signupOverlay.classList.contains('active')) {
+                    signupOverlay.classList.remove('active');
+                }
+                if (passwordResetOverlay.classList.contains('active')) {
+                    passwordResetOverlay.classList.remove('active');
+                }
+                if (referrersOverlay.classList.contains('active')) {
+                    referrersOverlay.classList.remove('active');
+                }
+            }
+        });
     </script>
 </body>
 </html>
