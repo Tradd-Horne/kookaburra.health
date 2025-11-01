@@ -262,6 +262,7 @@
 
         .login-form-container h2 {
             margin-bottom: 1.5rem;
+            margin-top: 1rem;
             color: #1a1a1a;
             font-size: 1.5rem;
             font-weight: 300;
@@ -334,6 +335,7 @@
         .step-content h3 {
             font-size: 1.5rem;
             font-weight: 300;
+            margin-top: 1rem;
             margin-bottom: 1.5rem;
             color: #1a1a1a;
         }
@@ -357,20 +359,22 @@
             top: 0;
             width: 1.5rem;
             height: 1.5rem;
-            background: #1a1a1a;
-            color: white;
+            background: transparent;
+            color: #1a1a1a;
+            border: 1px solid #1a1a1a;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 0.85rem;
-            font-weight: bold;
+            font-weight: normal;
         }
 
         .step-list li strong {
             display: block;
             margin-bottom: 0.25rem;
             color: #1a1a1a;
+            font-weight: normal;
         }
 
         .step-list li span {
@@ -414,13 +418,13 @@
         }
 
         .btn-next.enabled {
-            background: #1a1a1a;
+            background: #a91e01;
             color: white;
-            border-color: #1a1a1a;
+            border-color: #a91e01;
         }
 
         .btn-next.enabled:hover {
-            background: #333;
+            background: #8a1801;
         }
 
         .radio-group, .input-group {
@@ -840,25 +844,24 @@
     <div class="login-overlay" id="patientsOverlay">
         <div class="login-form-container">
             <button class="login-close" id="closePatients">×</button>
-            <h2>Patient Assessment</h2>
 
             <div class="questionnaire-steps">
                 <!-- Step 1: Introduction -->
                 <div class="questionnaire-step active" data-step="1">
                     <div class="step-content">
-                        <h3>How your consult will work</h3>
+                        <h3>How your intake will work</h3>
                         <ul class="step-list">
                             <li data-number="1">
                                 <strong>Online Assessment</strong>
-                                <span>Answer questions about your medical history and see if Pilot's a good fit.</span>
+                                <span>Answer questions about your medical history and see if kookaburra.health is a good fit.</span>
                             </li>
                             <li data-number="2">
-                                <strong>Pay for your consult</strong>
-                                <span>If you're found unsuitable, you'll receive a full refund.</span>
+                                <strong>Chat with a practitioner</strong>
+                                <span>Get matched with a practitioner and pick an available appointment time that suits your schedule.</span>
                             </li>
                             <li data-number="3">
-                                <strong>Chat with a practitioner</strong>
-                                <span>Your practitioner will call to confirm your details and if suitable, discuss your treatment.</span>
+                                <strong>Pay for your consult</strong>
+                                <span>If you have a MHCP, this will be reimbursed once your consult is complete (usually takes 1-2 days).</span>
                             </li>
                             <li data-number="4">
                                 <strong>Online Treatment delivery</strong>
@@ -875,7 +878,7 @@
                 <div class="questionnaire-step" data-step="2">
                     <div class="step-content">
                         <h3>Let's start with your name</h3>
-                        <p style="color: #666; margin-bottom: 1.5rem;">We require this to generate an electronic prescription if your practitioner prescribes a treatment.</p>
+                        <p style="color: #666; margin-bottom: 1.5rem;">We require this to confirm identity and match referrals (MHCP, etc).</p>
                         <div class="form-group">
                             <input type="text" id="firstName" placeholder="Legal first name *" required>
                         </div>
@@ -893,7 +896,7 @@
                 <div class="questionnaire-step" data-step="3">
                     <div class="step-content">
                         <h3>And your email?</h3>
-                        <p style="color: #666; margin-bottom: 1.5rem;">This is where we'll send information from your practitioner and pharmacy.</p>
+                        <p style="color: #666; margin-bottom: 1.5rem;">This is where we'll send information from your practitioner.</p>
                         <div class="form-group">
                             <input type="email" id="email" placeholder="Email *" required>
                         </div>
@@ -910,11 +913,145 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Assessment Start -->
+                <!-- Step 4: Gender Identity -->
                 <div class="questionnaire-step" data-step="4">
-                    <div class="step-intro">
-                        <h3>Let's start your assessment</h3>
-                        <p>Please answer a few questions before your consult.</p>
+                    <div class="step-content">
+                        <h3>What is your gender identity?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="man" onchange="validateStep4()">
+                                Man
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="woman" onchange="validateStep4()">
+                                Woman
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="other" onchange="validateStep4()">
+                                Other
+                            </label>
+                        </div>
+                        <div id="genderOtherInput" style="display: none; margin-top: 1rem;">
+                            <div class="form-group">
+                                <input type="text" id="genderOther" placeholder="Please specify" oninput="validateStep4()">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next" id="genderNext" disabled onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Date of Birth -->
+                <div class="questionnaire-step" data-step="5">
+                    <div class="step-content">
+                        <h3>What is your date of birth?</h3>
+                        <div class="form-group">
+                            <input type="text" id="dob" placeholder="DD/MM/YYYY *" required onchange="validateStep5()">
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next" id="dobNext" disabled onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 6: MHCP -->
+                <div class="questionnaire-step" data-step="6">
+                    <div class="step-content">
+                        <h3>Do you have a mental health care plan (MHCP) referral from your GP?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="mhcp" value="yes" onchange="validateStep6()">
+                                Yes
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="mhcp" value="no" onchange="validateStep6()">
+                                No
+                            </label>
+                        </div>
+                        <div id="mhcpUpload" style="display: none; margin-top: 1rem;">
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="mhcpFile" name="mhcp_file" class="file-upload-input" accept=".pdf,.doc,.docx">
+                                <label for="mhcpFile" class="file-upload-label" style="padding: 1rem;">
+                                    <div class="file-upload-text">
+                                        <strong>Upload MHCP</strong> (PDF, DOC, DOCX)
+                                    </div>
+                                </label>
+                                <div class="file-name-display" id="mhcpFileDisplay"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next" id="mhcpNext" disabled onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 7: Sexual Orientation -->
+                <div class="questionnaire-step" data-step="7">
+                    <div class="step-content">
+                        <h3>How do you identify?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="orientation" value="straight" onchange="validateStep7()">
+                                Straight
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="orientation" value="gay" onchange="validateStep7()">
+                                Gay
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="orientation" value="lesbian" onchange="validateStep7()">
+                                Lesbian
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="orientation" value="bi_pan" onchange="validateStep7()">
+                                Bi or Pan
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="orientation" value="prefer_not" onchange="validateStep7()">
+                                Prefer not to say
+                            </label>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next" id="orientationNext" disabled onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 8: Relationship Status -->
+                <div class="questionnaire-step" data-step="8">
+                    <div class="step-content">
+                        <h3>What is your relationship status?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="relationship" value="single">
+                                Single
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="relationship" value="relationship">
+                                In a relationship
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="relationship" value="married">
+                                Married
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="relationship" value="divorced">
+                                Divorced
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="relationship" value="widowed">
+                                Widowed
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="relationship" value="other">
+                                Other
+                            </label>
+                        </div>
                     </div>
                     <div class="questionnaire-nav">
                         <button type="button" class="btn-back" onclick="prevStep()">Back</button>
@@ -922,38 +1059,132 @@
                     </div>
                 </div>
 
-                <!-- Step 5: Sex at Birth -->
-                <div class="questionnaire-step" data-step="5">
+                <!-- Step 9: Religion -->
+                <div class="questionnaire-step" data-step="9">
                     <div class="step-content">
-                        <h3>What was your sex at birth?</h3>
+                        <h3>Which religion do you identify with?</h3>
                         <div class="radio-group">
                             <label class="radio-option">
-                                <input type="radio" name="sex" value="male" onchange="validateStep5()">
-                                Male
+                                <input type="radio" name="religion" value="christianity">
+                                Christianity
                             </label>
                             <label class="radio-option">
-                                <input type="radio" name="sex" value="female" onchange="validateStep5()">
-                                Female
+                                <input type="radio" name="religion" value="islam">
+                                Islam
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="religion" value="judaism">
+                                Judaism
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="religion" value="hinduism">
+                                Hinduism
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="religion" value="buddhism">
+                                Buddhism
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="religion" value="other">
+                                Other
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="religion" value="prefer_not">
+                                Prefer not to say
                             </label>
                         </div>
                     </div>
                     <div class="questionnaire-nav">
                         <button type="button" class="btn-back" onclick="prevStep()">Back</button>
-                        <button type="button" class="btn-next" id="sexNext" disabled onclick="nextStep()">Next</button>
+                        <button type="button" class="btn-next enabled" onclick="nextStep()">Next</button>
                     </div>
                 </div>
 
-                <!-- Step 6: Date of Birth -->
-                <div class="questionnaire-step" data-step="6">
+                <!-- Step 10: Spiritual -->
+                <div class="questionnaire-step" data-step="10">
                     <div class="step-content">
-                        <h3>What is your date of birth?</h3>
-                        <div class="form-group">
-                            <input type="date" id="dob" required onchange="validateStep6()">
+                        <h3>Do you consider yourself to be spiritual?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="spiritual" value="yes">
+                                Yes
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="spiritual" value="no">
+                                No
+                            </label>
                         </div>
                     </div>
                     <div class="questionnaire-nav">
                         <button type="button" class="btn-back" onclick="prevStep()">Back</button>
-                        <button type="button" class="btn-next" id="dobNext" disabled onclick="nextStep()">Submit</button>
+                        <button type="button" class="btn-next enabled" onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 11: Therapy History -->
+                <div class="questionnaire-step" data-step="11">
+                    <div class="step-content">
+                        <h3>Have you ever been in therapy before?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="therapy" value="yes">
+                                Yes
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="therapy" value="no">
+                                No
+                            </label>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next enabled" onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 12: Employment -->
+                <div class="questionnaire-step" data-step="12">
+                    <div class="step-content">
+                        <h3>Are you currently employed?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="employment" value="yes">
+                                Yes
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="employment" value="no">
+                                No
+                            </label>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next enabled" onclick="nextStep()">Next</button>
+                    </div>
+                </div>
+
+                <!-- Step 13: Financial Status -->
+                <div class="questionnaire-step" data-step="13">
+                    <div class="step-content">
+                        <h3>How would you rate your current financial status?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="financial" value="good">
+                                Good
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="financial" value="fair">
+                                Fair
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="financial" value="poor">
+                                Poor
+                            </label>
+                        </div>
+                    </div>
+                    <div class="questionnaire-nav">
+                        <button type="button" class="btn-back" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn-next enabled" onclick="nextStep()">Submit</button>
                     </div>
                 </div>
             </div>
@@ -1100,7 +1331,7 @@
 
         // Questionnaire navigation
         let currentStep = 1;
-        const totalSteps = 6;
+        const totalSteps = 13;
 
         function nextStep() {
             if (currentStep < totalSteps) {
@@ -1160,23 +1391,97 @@
         if (password) password.addEventListener('input', validateStep3);
         if (confirmPassword) confirmPassword.addEventListener('input', validateStep3);
 
-        // Validation for Step 5 (Sex)
-        function validateStep5() {
-            const sexNext = document.getElementById('sexNext');
-            const selected = document.querySelector('input[name="sex"]:checked');
-            if (selected && sexNext) {
-                sexNext.disabled = false;
-                sexNext.classList.add('enabled');
+        // Validation for Step 4 (Gender Identity)
+        function validateStep4() {
+            const genderNext = document.getElementById('genderNext');
+            const selected = document.querySelector('input[name="gender"]:checked');
+            const genderOtherInput = document.getElementById('genderOtherInput');
+
+            if (selected) {
+                // Show/hide the "Other" input field
+                if (selected.value === 'other') {
+                    genderOtherInput.style.display = 'block';
+                } else {
+                    genderOtherInput.style.display = 'none';
+                }
+
+                if (genderNext) {
+                    genderNext.disabled = false;
+                    genderNext.classList.add('enabled');
+                }
             }
         }
 
-        // Validation for Step 6 (DOB)
-        function validateStep6() {
+        // Validation for Step 5 (DOB)
+        function validateStep5() {
             const dobNext = document.getElementById('dobNext');
             const dob = document.getElementById('dob');
             if (dob && dob.value && dobNext) {
-                dobNext.disabled = false;
-                dobNext.classList.add('enabled');
+                // Basic validation for DD/MM/YYYY format
+                const datePattern = /^\d{2}\/\d{2}\/\d{4}$/;
+                if (datePattern.test(dob.value)) {
+                    dobNext.disabled = false;
+                    dobNext.classList.add('enabled');
+                } else {
+                    dobNext.disabled = true;
+                    dobNext.classList.remove('enabled');
+                }
+            }
+        }
+
+        // Add input event listener for DOB
+        const dobInput = document.getElementById('dob');
+        if (dobInput) {
+            dobInput.addEventListener('input', validateStep5);
+        }
+
+        // Validation for Step 6 (MHCP)
+        function validateStep6() {
+            const mhcpNext = document.getElementById('mhcpNext');
+            const selected = document.querySelector('input[name="mhcp"]:checked');
+            const mhcpUpload = document.getElementById('mhcpUpload');
+
+            if (selected) {
+                // Show/hide upload box based on selection
+                if (mhcpUpload) {
+                    if (selected.value === 'yes') {
+                        mhcpUpload.style.display = 'block';
+                    } else {
+                        mhcpUpload.style.display = 'none';
+                    }
+                }
+
+                // Enable next button
+                if (mhcpNext) {
+                    mhcpNext.disabled = false;
+                    mhcpNext.classList.add('enabled');
+                }
+            }
+        }
+
+        // MHCP file upload display
+        const mhcpFile = document.getElementById('mhcpFile');
+        const mhcpFileDisplay = document.getElementById('mhcpFileDisplay');
+
+        if (mhcpFile && mhcpFileDisplay) {
+            mhcpFile.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    const fileName = e.target.files[0].name;
+                    mhcpFileDisplay.textContent = '📎 ' + fileName;
+                    mhcpFileDisplay.classList.add('active');
+                } else {
+                    mhcpFileDisplay.classList.remove('active');
+                }
+            });
+        }
+
+        // Validation for Step 7 (Sexual Orientation)
+        function validateStep7() {
+            const orientationNext = document.getElementById('orientationNext');
+            const selected = document.querySelector('input[name="orientation"]:checked');
+            if (selected && orientationNext) {
+                orientationNext.disabled = false;
+                orientationNext.classList.add('enabled');
             }
         }
 
