@@ -58,7 +58,7 @@
         }
 
         .sidebar nav a.active {
-            background-color: #a91e01;
+            background-color: #65705f;
             color: white;
         }
         
@@ -91,8 +91,8 @@
         }
 
         .logout-btn {
-            background-color: #1a1a1a;
-            color: #f7f8f3;
+            background-color: #a91e01;
+            color: white;
             padding: 0.5rem 1rem;
             text-decoration: none;
             border: none;
@@ -103,7 +103,7 @@
         }
 
         .logout-btn:hover {
-            background-color: #333;
+            background-color: #8a1801;
         }
         
         .content-card {
@@ -122,7 +122,7 @@
         }
 
         .btn {
-            background-color: #a91e01;
+            background-color: #65705f;
             color: white;
             padding: 0.5rem 1rem;
             border: none;
@@ -136,7 +136,7 @@
         }
 
         .btn:hover {
-            background-color: #8a1801;
+            background-color: #535d4d;
         }
 
         .btn-secondary {
@@ -173,7 +173,7 @@
 
         .errorlist {
             list-style: none;
-            color: #a91e01;
+            color: #c0392b;
             font-size: 0.875rem;
             margin-top: 0.25rem;
         }
@@ -196,8 +196,8 @@
 
         .message.error {
             background-color: #ffebee;
-            color: #8a1801;
-            border: 1px solid #a91e01;
+            color: #c0392b;
+            border: 1px solid #e74c3c;
         }
         
         .stats-grid {
@@ -232,11 +232,12 @@
 <body>
     <div class="dashboard-container">
         <aside class="sidebar">
-            <h2>kookaburra<br>.health</h2>
+            <a href="{% url 'lander' %}" style="text-decoration: none; color: inherit;">
+                <h2>kookaburra<br>.health</h2>
+            </a>
             <nav>
                 <a href="{% url 'dashboard:home' %}" {% if request.resolver_match.url_name == 'home' %}class="active"{% endif %}>Home</a>
                 <a href="{% url 'dashboard:settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}>Settings</a>
-                <a href="{% url 'lander' %}">Back to Site</a>
             </nav>
         </aside>
         

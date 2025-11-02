@@ -2,29 +2,146 @@
 
 {% block page_title %}Dashboard{% endblock %}
 
+{% block extra_css %}
+<style>
+    .appointments-grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .appointment-card {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #65705f;
+    }
+
+    .appointment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .appointment-date {
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: #1a1a1a;
+    }
+
+    .appointment-time {
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .appointment-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        background-color: #65705f;
+        color: white;
+    }
+
+    .appointment-details {
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    .appointment-detail {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .appointment-detail strong {
+        color: #1a1a1a;
+        min-width: 100px;
+    }
+
+    .appointment-link {
+        margin-top: 1rem;
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #65705f;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+    }
+
+    .appointment-link:hover {
+        background-color: #535d4d;
+    }
+
+    .no-appointments {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="content-card">
-    <h2>Welcome to kookaburra.health</h2>
-    <p style="color: #666; margin-bottom: 1.5rem;">Your patient dashboard for managing appointments and questionnaires.</p>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>Your Profile</h3>
-            <p>{{ user.get_full_name|default:user.username }}</p>
-            <p style="margin-top: 0.5rem;">{{ user.email }}</p>
-        </div>
-
-        <div class="stat-card">
-            <h3>Questionnaire</h3>
-            <p>{% if user.questionnaire.is_complete %}Completed{% else %}Pending{% endif %}</p>
-        </div>
-    </div>
+    <h2>Welcome, {{ user.get_full_name|default:user.username }}!</h2>
+    <p style="color: #666; margin-bottom: 1.5rem;">Your patient dashboard for managing appointments.</p>
 </div>
 
-<div class="content-card">
-    <h2>Next Steps</h2>
-    <p style="color: #666; margin-bottom: 1rem;">We will contact you within 24 hours to schedule your first appointment.</p>
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+    <!-- Upcoming Appointments -->
+    <div class="content-card">
+        <h2>Upcoming Appointments</h2>
 
-    <p style="color: #666; margin-top: 1rem;">If you have any questions, please contact us at <a href="mailto:support@kookaburra.health" style="color: #a91e01; text-decoration: underline;">support@kookaburra.health</a></p>
+        <div class="appointments-grid">
+            {% if appointments %}
+                {% for appointment in appointments %}
+                <div class="appointment-card">
+                    <div class="appointment-header">
+                        <div>
+                            <div class="appointment-date">{{ appointment.date|date:"l, F j, Y" }}</div>
+                            <div class="appointment-time">{{ appointment.time|time:"g:i A" }}</div>
+                        </div>
+                        <div class="appointment-status">{{ appointment.status }}</div>
+                    </div>
+                    <div class="appointment-details">
+                        <div class="appointment-detail">
+                            <strong>Practitioner:</strong>
+                            <span>{{ appointment.practitioner_name }}</span>
+                        </div>
+                        <div class="appointment-detail">
+                            <strong>Type:</strong>
+                            <span>{{ appointment.appointment_type }}</span>
+                        </div>
+                        {% if appointment.location %}
+                        <div class="appointment-detail">
+                            <strong>Location:</strong>
+                            <span>{{ appointment.location }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if appointment.meeting_link %}
+                    <a href="{{ appointment.meeting_link }}" class="appointment-link" target="_blank">Join Video Call</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-appointments">
+                    <p>No upcoming appointments scheduled.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="content-card">
+        <h2>Next Steps</h2>
+        <p style="color: #666; margin-bottom: 1rem;">We will contact you within 24 hours to schedule your first appointment.</p>
+
+        <p style="color: #666; margin-top: 1rem;">If you have any questions, please contact us at <a href="mailto:support@kookaburra.health" style="color: #65705f; text-decoration: underline;">support@kookaburra.health</a></p>
+    </div>
 </div>
 {% endblock %}

@@ -22,7 +22,14 @@ from api.models import GoogleDriveFolder, Booking, IngestionRun
 @login_required
 def dashboard_home(request):
     """Dashboard home page."""
-    return render(request, 'dashboard/home.html')
+    # TODO: Replace with actual appointment model when available
+    # For now, show empty state
+    appointments = []
+
+    context = {
+        'appointments': appointments
+    }
+    return render(request, 'dashboard/home.html', context)
 
 
 @login_required
