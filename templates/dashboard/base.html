@@ -24,14 +24,87 @@
         .dashboard-container {
             display: flex;
             min-height: 100vh;
+            position: relative;
         }
-        
+
+        .menu-toggle {
+            display: none;
+            background-color: #65705f;
+            color: white;
+            border: none;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-right: 1rem;
+        }
+
+        .menu-toggle:hover {
+            background-color: #535d4d;
+        }
+
         .sidebar {
             width: 250px;
             background-color: #f7f8f3;
             color: #333;
             padding: 2rem 0;
             border-right: 1px solid #e0e0e0;
+            transition: transform 0.3s ease;
+        }
+
+        .header {
+            background-color: white;
+            padding: 1.5rem 2rem;
+            margin: -2rem -2rem 2rem -2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 1000;
+                transform: translateX(-100%);
+                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            .main-content {
+                width: 100%;
+                margin-left: 0;
+            }
         }
 
         .sidebar h2 {
@@ -65,16 +138,6 @@
         .main-content {
             flex: 1;
             padding: 2rem;
-        }
-        
-        .header {
-            background-color: white;
-            padding: 1.5rem 2rem;
-            margin: -2rem -2rem 2rem -2rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         
         .header h1 {
@@ -230,8 +293,10 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <div class="dashboard-container">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <a href="{% url 'lander' %}" style="text-decoration: none; color: inherit;">
                 <h2>kookaburra<br>.health</h2>
             </a>
@@ -240,10 +305,13 @@
                 <a href="{% url 'dashboard:settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}>Settings</a>
             </nav>
         </aside>
-        
+
         <main class="main-content">
             <div class="header">
-                <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                <div class="header-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <h1>{% block page_title %}{% endblock %}</h1>
+                </div>
                 <div class="user-info">
                     <span>Welcome, {{ user.get_full_name|default:user.username }}!</span>
                     <form method="post" action="{% url 'users:logout' %}" style="display: inline;">
@@ -267,6 +335,36 @@
         </main>
     </div>
     
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        if (menuToggle && sidebar && sidebarOverlay) {
+            menuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+            });
+
+            sidebarOverlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+            });
+
+            // Close sidebar when clicking a nav link on mobile
+            const navLinks = sidebar.querySelectorAll('nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                        sidebarOverlay.classList.remove('active');
+                    }
+                });
+            });
+        }
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
