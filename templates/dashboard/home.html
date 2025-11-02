@@ -4,66 +4,121 @@
 
 {% block extra_css %}
 <style>
-    .appointments-grid {
+    .timeline {
+        margin-top: 1.5rem;
+    }
+
+    .timeline-item {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        border-left: 3px solid #65705f;
+        margin-bottom: 0.75rem;
+        position: relative;
+    }
+
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .timeline-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+    }
+
+    .timeline-title {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #1a1a1a;
+    }
+
+    .timeline-date {
+        color: #666;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
+    .timeline-status {
+        padding: 0.2rem 0.6rem;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        background-color: #65705f;
+        color: white;
+        margin-left: auto;
+        white-space: nowrap;
+    }
+
+    .timeline-status.pending {
+        background-color: #f0ad4e;
+    }
+
+    .timeline-status.completed {
+        background-color: #4a7c59;
+    }
+
+    .timeline-description {
+        color: #666;
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+
+    .documents-grid {
         display: grid;
         gap: 1rem;
         margin-top: 1.5rem;
     }
 
-    .appointment-card {
+    .document-card {
         background-color: #f8f9fa;
-        padding: 1.5rem;
+        padding: 1.25rem;
         border-radius: 8px;
-        border-left: 4px solid #65705f;
-    }
-
-    .appointment-header {
+        border: 2px solid #e0e0e0;
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 1rem;
+        align-items: center;
     }
 
-    .appointment-date {
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: #1a1a1a;
-    }
-
-    .appointment-time {
-        color: #666;
-        font-size: 0.95rem;
-    }
-
-    .appointment-status {
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.85rem;
-        background-color: #65705f;
-        color: white;
-    }
-
-    .appointment-details {
-        display: grid;
-        gap: 0.5rem;
-    }
-
-    .appointment-detail {
+    .document-info {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        color: #666;
-        font-size: 0.95rem;
+        gap: 1rem;
     }
 
-    .appointment-detail strong {
+    .document-icon {
+        width: 40px;
+        height: 40px;
+        background-color: #65705f;
+        color: white;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .document-details h4 {
+        margin: 0 0 0.25rem 0;
         color: #1a1a1a;
-        min-width: 100px;
+        font-size: 0.95rem;
+        font-weight: 500;
     }
 
-    .appointment-link {
-        margin-top: 1rem;
-        display: inline-block;
+    .document-details p {
+        margin: 0;
+        color: #666;
+        font-size: 0.85rem;
+    }
+
+    .document-link {
         padding: 0.5rem 1rem;
         background-color: #65705f;
         color: white;
@@ -73,11 +128,11 @@
         transition: background 0.2s;
     }
 
-    .appointment-link:hover {
+    .document-link:hover {
         background-color: #535d4d;
     }
 
-    .no-appointments {
+    .no-documents {
         text-align: center;
         padding: 2rem;
         color: #666;
@@ -88,51 +143,63 @@
 {% block content %}
 <div class="content-card">
     <h2>Welcome, {{ user.get_full_name|default:user.username }}!</h2>
-    <p style="color: #666; margin-bottom: 1.5rem;">Your patient dashboard for managing appointments.</p>
+    <p style="color: #666; margin-bottom: 1.5rem;">Your patient dashboard for managing appointments and documents.</p>
 </div>
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-    <!-- Upcoming Appointments -->
-    <div class="content-card">
-        <h2>Upcoming Appointments</h2>
+    <div>
+        <!-- Activity Timeline -->
+        <div class="content-card">
+            <h2>Recent Activity</h2>
 
-        <div class="appointments-grid">
-            {% if appointments %}
-                {% for appointment in appointments %}
-                <div class="appointment-card">
-                    <div class="appointment-header">
-                        <div>
-                            <div class="appointment-date">{{ appointment.date|date:"l, F j, Y" }}</div>
-                            <div class="appointment-time">{{ appointment.time|time:"g:i A" }}</div>
+            <div class="timeline">
+                {% if timeline_items %}
+                    {% for item in timeline_items %}
+                    <div class="timeline-item">
+                        <div class="timeline-header">
+                            <div class="timeline-title-row">
+                                <div class="timeline-title">{{ item.title }}</div>
+                                <div class="timeline-date">{{ item.date|date:"d/m/Y, g:i A" }} AEST</div>
+                            </div>
+                            <div class="timeline-status {{ item.status_class }}">{{ item.status }}</div>
                         </div>
-                        <div class="appointment-status">{{ appointment.status }}</div>
+                        <div class="timeline-description">
+                            {{ item.description }}
+                        </div>
                     </div>
-                    <div class="appointment-details">
-                        <div class="appointment-detail">
-                            <strong>Practitioner:</strong>
-                            <span>{{ appointment.practitioner_name }}</span>
-                        </div>
-                        <div class="appointment-detail">
-                            <strong>Type:</strong>
-                            <span>{{ appointment.appointment_type }}</span>
-                        </div>
-                        {% if appointment.location %}
-                        <div class="appointment-detail">
-                            <strong>Location:</strong>
-                            <span>{{ appointment.location }}</span>
-                        </div>
-                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="no-appointments">
+                        <p>No activity yet.</p>
                     </div>
-                    {% if appointment.meeting_link %}
-                    <a href="{{ appointment.meeting_link }}" class="appointment-link" target="_blank">Join Video Call</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Your Documents -->
+        <div class="content-card" style="margin-top: 2rem;">
+            <h2>Your Documents</h2>
+
+            <div class="documents-grid">
+                {% if has_mhcp %}
+                <div class="document-card">
+                    <div class="document-info">
+                        <div class="document-icon">📄</div>
+                        <div class="document-details">
+                            <h4>Mental Health Care Plan (MHCP)</h4>
+                            <p>Uploaded {{ mhcp_upload_date|date:"F j, Y" }}</p>
+                        </div>
+                    </div>
+                    {% if mhcp_file_url %}
+                    <a href="{{ mhcp_file_url }}" class="document-link" target="_blank">View</a>
                     {% endif %}
                 </div>
-                {% endfor %}
-            {% else %}
-                <div class="no-appointments">
-                    <p>No upcoming appointments scheduled.</p>
+                {% else %}
+                <div class="no-documents">
+                    <p>No documents uploaded yet.</p>
                 </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
 

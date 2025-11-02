@@ -22,12 +22,78 @@ from api.models import GoogleDriveFolder, Booking, IngestionRun
 @login_required
 def dashboard_home(request):
     """Dashboard home page."""
-    # TODO: Replace with actual appointment model when available
-    # For now, show empty state
-    appointments = []
+    import pytz
+
+    # Get user's questionnaire if exists
+    timeline_items = []
+    has_mhcp = False
+    mhcp_upload_date = None
+    mhcp_file_url = None
+
+    try:
+        questionnaire = request.user.questionnaire
+
+        # Convert to Australia/Brisbane timezone (AEST/AEDT)
+        aest = pytz.timezone('Australia/Brisbane')
+
+        # Add questionnaire completion to timeline
+        if questionnaire.is_complete and questionnaire.completed_at:
+            completed_date = questionnaire.completed_at.astimezone(aest)
+
+            # Add next step - awaiting contact
+            timeline_items.append({
+                'title': 'Next Step: Initial Appointment Scheduling',
+                'date': completed_date,
+                'status': 'Pending',
+                'status_class': 'pending',
+                'description': 'Our team will review your information and contact you within 24 hours to schedule your first appointment.'
+            })
+
+            # Add completed questionnaire
+            timeline_items.append({
+                'title': 'Intake Questionnaire Completed',
+                'date': completed_date,
+                'status': 'Completed',
+                'status_class': 'completed',
+                'description': 'You have successfully completed your intake questionnaire.'
+            })
+        else:
+            # Created but not complete
+            created_date = questionnaire.created_at.astimezone(aest)
+            timeline_items.append({
+                'title': 'Intake Questionnaire Started',
+                'date': created_date,
+                'status': 'In Progress',
+                'status_class': 'pending',
+                'description': 'You started your intake questionnaire. Please complete it so we can schedule your appointment.'
+            })
+
+        # Check for MHCP
+        if questionnaire.has_mhcp and questionnaire.mhcp_file:
+            has_mhcp = True
+            mhcp_upload_date = questionnaire.created_at.astimezone(aest)
+            mhcp_file_url = questionnaire.mhcp_file.url if questionnaire.mhcp_file else None
+
+    except:
+        # No questionnaire yet - user just signed up
+        aest = pytz.timezone('Australia/Brisbane')
+        signup_date = request.user.date_joined.astimezone(aest)
+        timeline_items.append({
+            'title': 'Account Created',
+            'date': signup_date,
+            'status': 'Pending',
+            'status_class': 'pending',
+            'description': 'Welcome to kookaburra.health! Please complete your intake questionnaire to get started.'
+        })
+
+    # Sort timeline by date (most recent first)
+    timeline_items.sort(key=lambda x: x['date'], reverse=True)
 
     context = {
-        'appointments': appointments
+        'timeline_items': timeline_items,
+        'has_mhcp': has_mhcp,
+        'mhcp_upload_date': mhcp_upload_date,
+        'mhcp_file_url': mhcp_file_url,
     }
     return render(request, 'dashboard/home.html', context)
 
