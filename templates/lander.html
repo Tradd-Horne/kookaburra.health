@@ -905,6 +905,9 @@
                             <input type="email" id="email" placeholder="Email *" required>
                         </div>
                         <div class="form-group">
+                            <input type="tel" id="phone" placeholder="Phone number *" required>
+                        </div>
+                        <div class="form-group">
                             <input type="password" id="password" placeholder="Password *" required>
                         </div>
                         <div class="form-group">
@@ -1373,15 +1376,16 @@
         if (firstName) firstName.addEventListener('input', validateStep2);
         if (lastName) lastName.addEventListener('input', validateStep2);
 
-        // Validation for Step 3 (Email/Password)
+        // Validation for Step 3 (Email/Phone/Password)
         const email = document.getElementById('email');
+        const phone = document.getElementById('phone');
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirmPassword');
         const emailNext = document.getElementById('emailNext');
 
         function validateStep3() {
-            if (email && password && confirmPassword && emailNext) {
-                if (email.value.trim() && password.value && confirmPassword.value && password.value === confirmPassword.value) {
+            if (email && phone && password && confirmPassword && emailNext) {
+                if (email.value.trim() && phone.value.trim() && password.value && confirmPassword.value && password.value === confirmPassword.value) {
                     emailNext.disabled = false;
                     emailNext.classList.add('enabled');
                 } else {
@@ -1392,6 +1396,7 @@
         }
 
         if (email) email.addEventListener('input', validateStep3);
+        if (phone) phone.addEventListener('input', validateStep3);
         if (password) password.addEventListener('input', validateStep3);
         if (confirmPassword) confirmPassword.addEventListener('input', validateStep3);
 
