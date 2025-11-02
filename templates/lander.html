@@ -1198,6 +1198,19 @@
         </div>
     </div>
 
+    <!-- Success Message Overlay -->
+    <div class="login-overlay" id="successOverlay">
+        <div class="login-form-container" style="max-width: 500px; text-align: center;">
+            <div style="margin-bottom: 1.5rem;">
+                <div style="width: 60px; height: 60px; margin: 0 auto 1rem; background: #4a7c59; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">✓</div>
+                <h2 style="margin-bottom: 1rem;">Thank you!</h2>
+                <p style="color: #666; font-size: 1rem; line-height: 1.6;">Your questionnaire has been submitted successfully.</p>
+                <p style="color: #666; font-size: 1rem; line-height: 1.6; margin-top: 0.5rem;">We will contact you within 24 hours to schedule your appointment.</p>
+            </div>
+            <button onclick="window.location.href='/dashboard/'" class="login-submit-btn" style="margin-top: 1rem;">Go to Dashboard</button>
+        </div>
+    </div>
+
     <!-- Referrers Overlay -->
     <div class="login-overlay" id="referrersOverlay">
         <div class="login-form-container">
@@ -1339,8 +1352,112 @@
         // Questionnaire navigation
         let currentStep = 1;
         const totalSteps = 13;
+        let userCreated = false;
 
-        function nextStep() {
+        async function createPatientUser() {
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/accounts/api/create-patient/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        firstName,
+                        lastName,
+                        email,
+                        phone,
+                        password
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    userCreated = true;
+                    console.log('User created successfully');
+                } else {
+                    console.error('Error creating user:', data.error);
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            }
+        }
+
+        async function updateQuestionnaire(isComplete = false) {
+            const data = {
+                gender: document.querySelector('input[name="gender"]:checked')?.value,
+                genderOther: document.getElementById('genderOther')?.value,
+                dateOfBirth: document.getElementById('dob')?.value,
+                hasMhcp: document.querySelector('input[name="mhcp"]:checked')?.value,
+                sexualOrientation: document.querySelector('input[name="orientation"]:checked')?.value,
+                relationshipStatus: document.querySelector('input[name="relationship"]:checked')?.value,
+                religion: document.querySelector('input[name="religion"]:checked')?.value,
+                isSpiritual: document.querySelector('input[name="spiritual"]:checked')?.value,
+                hasTherapyHistory: document.querySelector('input[name="therapy"]:checked')?.value,
+                isEmployed: document.querySelector('input[name="employment"]:checked')?.value,
+                financialStatus: document.querySelector('input[name="financial"]:checked')?.value,
+                isComplete: isComplete
+            };
+
+            try {
+                const response = await fetch('/accounts/api/update-questionnaire/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    console.log('Questionnaire updated');
+                    if (isComplete) {
+                        // Close the patients overlay
+                        const patientsOverlay = document.getElementById('patientsOverlay');
+                        if (patientsOverlay) {
+                            patientsOverlay.classList.remove('active');
+                        }
+                        // Show success overlay
+                        const successOverlay = document.getElementById('successOverlay');
+                        if (successOverlay) {
+                            successOverlay.classList.add('active');
+                        }
+                    }
+                } else {
+                    console.error('Error updating questionnaire:', result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function nextStep() {
+            // After step 3, create the user account
+            if (currentStep === 3 && !userCreated) {
+                await createPatientUser();
+                if (!userCreated) {
+                    return; // Don't proceed if user creation failed
+                }
+            }
+
+            // On final step, submit the complete questionnaire
+            if (currentStep === totalSteps) {
+                await updateQuestionnaire(true);
+                return;
+            }
+
+            // Save progress periodically
+            if (userCreated && currentStep > 3) {
+                await updateQuestionnaire(false);
+            }
+
             if (currentStep < totalSteps) {
                 document.querySelector(`[data-step="${currentStep}"]`).classList.remove('active');
                 currentStep++;
@@ -1606,6 +1723,21 @@
                 }
             });
         }
+
+        // Add Enter key handler for questionnaire
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && patientsOverlay && patientsOverlay.classList.contains('active')) {
+                e.preventDefault();
+                // Find the Next button for the current active step
+                const activeStep = document.querySelector('.questionnaire-step.active');
+                if (activeStep) {
+                    const nextBtn = activeStep.querySelector('.btn-next');
+                    if (nextBtn && !nextBtn.disabled) {
+                        nextBtn.click();
+                    }
+                }
+            }
+        });
 
         // Patients functionality
         const patientsBtn = document.getElementById('patientsBtn');
