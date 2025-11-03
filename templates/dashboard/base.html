@@ -313,7 +313,7 @@
                     <h1>{% block page_title %}{% endblock %}</h1>
                 </div>
                 <div class="user-info">
-                    <span>Welcome, {{ user.get_full_name|default:user.username }}!</span>
+                    <span>Welcome, {{ user.get_full_name|default:user.username }}</span>
                     <form method="post" action="{% url 'users:logout' %}" style="display: inline;">
                         {% csrf_token %}
                         <button type="submit" class="logout-btn">Logout</button>

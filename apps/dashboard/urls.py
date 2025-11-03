@@ -12,4 +12,5 @@ urlpatterns = [
     path('flows/watched-folders/<str:folder_name>/', views.folder_bookings, name='folder_bookings'),
     path('workflows/guest-extra-night/', views.guest_extra_night_workflow, name='guest_extra_night_workflow'),
     path('settings/', views.user_settings, name='settings'),
+    path('upload-document/', views.upload_document, name='upload_document'),
 ]

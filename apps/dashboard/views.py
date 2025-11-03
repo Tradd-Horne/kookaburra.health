@@ -17,6 +17,7 @@ from django.utils import timezone as django_timezone
 from collections import defaultdict
 
 from api.models import GoogleDriveFolder, Booking, IngestionRun
+from apps.users.models import PatientQuestionnaire
 
 
 @login_required
@@ -42,7 +43,7 @@ def dashboard_home(request):
 
             # Add next step - awaiting contact
             timeline_items.append({
-                'title': 'Next Step: Initial Appointment Scheduling',
+                'title': 'Next Step:\nInitial Appointment Scheduling',
                 'date': completed_date,
                 'status': 'Pending',
                 'status_class': 'pending',
@@ -51,7 +52,7 @@ def dashboard_home(request):
 
             # Add completed questionnaire
             timeline_items.append({
-                'title': 'Intake Questionnaire Completed',
+                'title': 'Intake Questionnaire',
                 'date': completed_date,
                 'status': 'Completed',
                 'status_class': 'completed',
@@ -318,6 +319,35 @@ def export_bookings_csv(request, folder):
         ])
     
     return response
+
+
+@login_required
+def upload_document(request):
+    """Handle document upload for patients."""
+    if request.method == 'POST' and request.FILES.get('document'):
+        try:
+            # Get or create questionnaire
+            questionnaire, created = PatientQuestionnaire.objects.get_or_create(
+                user=request.user
+            )
+
+            document_type = request.POST.get('document_type', 'other')
+            uploaded_file = request.FILES['document']
+
+            # For now, only handle MHCP uploads
+            # TODO: Expand to handle multiple document types
+            if document_type == 'mhcp':
+                questionnaire.mhcp_file = uploaded_file
+                questionnaire.has_mhcp = True
+                questionnaire.save()
+                messages.success(request, 'Document uploaded successfully!')
+            else:
+                messages.info(request, 'Additional document types coming soon!')
+
+        except Exception as e:
+            messages.error(request, f'Error uploading document: {str(e)}')
+
+    return redirect('dashboard:home')
 
 
 @login_required

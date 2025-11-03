@@ -6,12 +6,11 @@
 <style>
     .settings-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 3rem;
-        margin-top: 2rem;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 992px) {
         .settings-grid {
             grid-template-columns: 1fr;
             gap: 2rem;
@@ -21,41 +20,37 @@
 {% endblock %}
 
 {% block content %}
-<div class="content-card">
-    <h2>Account Settings</h2>
+<div class="settings-grid">
+    <!-- Profile Information -->
+    <div class="content-card">
+        <h2>Profile Information</h2>
+        <p style="color: #666; margin-bottom: 0.5rem;"><strong>Name:</strong> {{ user.get_full_name|default:user.username }}</p>
+        <p style="color: #666; margin-bottom: 0.5rem;"><strong>Email:</strong> {{ user.email }}</p>
+        {% if user.phone %}
+        <p style="color: #666; margin-bottom: 0.5rem;"><strong>Phone:</strong> {{ user.phone }}</p>
+        {% endif %}
+    </div>
 
-    <div class="settings-grid">
-        <!-- Profile Information -->
-        <div>
-            <h3 style="color: #1a1a1a; font-size: 1rem; margin-bottom: 1rem; font-weight: 500;">Profile Information</h3>
-            <p style="color: #666; margin-bottom: 0.5rem;"><strong>Name:</strong> {{ user.get_full_name|default:user.username }}</p>
-            <p style="color: #666; margin-bottom: 0.5rem;"><strong>Email:</strong> {{ user.email }}</p>
-            {% if user.phone %}
-            <p style="color: #666; margin-bottom: 0.5rem;"><strong>Phone:</strong> {{ user.phone }}</p>
-            {% endif %}
-        </div>
-
-        <!-- Change Password -->
-        <div>
-            <h3 style="color: #1a1a1a; font-size: 1rem; margin-bottom: 1rem; font-weight: 500;">Change Password</h3>
-            <form method="post">
-                {% csrf_token %}
-                {% for field in form %}
-                    <div class="form-group">
-                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                            <ul class="errorlist">
-                                {% for error in field.errors %}
-                                    <li>{{ error }}</li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-                <button type="submit" class="btn">Update Password</button>
-            </form>
-        </div>
+    <!-- Change Password -->
+    <div class="content-card">
+        <h2>Change Password</h2>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <ul class="errorlist">
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Update Password</button>
+        </form>
     </div>
 </div>
 {% endblock %}
